@@ -24,6 +24,9 @@ const HOVER_MS = 380;
 const EXPAND_MS = 750;
 const TEXT_FADE_MS = 180;
 const TEXT_CHAR_STEP_MS = 25;
+const BLOG_EXIT_MS = 220;
+const BLOG_ITEM_MS = 520;
+const BLOG_ITEM_STAGGER_MS = 90;
 
 function Slideshow({
   photos,
@@ -134,14 +137,35 @@ const QUADRANT_STYLES: { bg: string; fg: string }[] = [
   { bg: "bg-neutral-900", fg: "text-neutral-200" },
 ];
 
+type BlogPhase = "idle" | "exiting" | "entering";
+
 function buildQuadrants(
   posts: SurfacePost[],
   sections: SurfaceSections,
   expanded: number | null,
+  blogPhase: BlogPhase,
 ): Quadrant[] {
   const q = sections.quadrants;
   const blogSlug = q[3].slug;
   const blogCenter = expanded === 3 ? " is-centered" : "";
+  const blogItemStyle = (idx: number): React.CSSProperties => {
+    if (blogPhase === "exiting") {
+      return {
+        opacity: 0,
+        transform: "translateY(-8px)",
+        transition: `opacity ${BLOG_EXIT_MS}ms ease, transform ${BLOG_EXIT_MS}ms ease`,
+      };
+    }
+    if (blogPhase === "entering") {
+      return {
+        opacity: 1,
+        transform: "translateY(0)",
+        transition: `opacity ${BLOG_ITEM_MS}ms cubic-bezier(0, 0, 0.2, 1), transform ${BLOG_ITEM_MS}ms cubic-bezier(0, 0, 0.2, 1)`,
+        transitionDelay: `${idx * BLOG_ITEM_STAGGER_MS}ms`,
+      };
+    }
+    return { opacity: 1, transform: "translateY(0)" };
+  };
   const bodies: React.ReactNode[] = [
     null,
     (
@@ -162,8 +186,8 @@ function buildQuadrants(
       </p>
     ) : (
       <ul className={`stable-col${blogCenter} space-y-6 px-6 pb-6 text-xl`}>
-        {posts.map((p) => (
-          <li key={p.slug}>
+        {posts.map((p, idx) => (
+          <li key={p.slug} style={blogItemStyle(idx)}>
             <Link
               href={`/${blogSlug}/${p.slug}`}
               className="underline underline-offset-4 hover:text-blue-500"
@@ -329,7 +353,9 @@ export default function Surface({
   const blogSlug = sections.quadrants[3].slug;
   const [hovered, setHovered] = useState<number | null>(null);
   const [suppressHover, setSuppressHover] = useState(false);
+  const [blogPhase, setBlogPhase] = useState<BlogPhase>("idle");
   const prevExpandedRef = useRef<number | null>(expanded);
+  const prevBlogExpandedRef = useRef<boolean>(expanded === 3);
   const cursorSectionRef = useRef<number | null>(null);
   const [activePhoto, setActivePhoto] = useState<Photo>(
     photos[0] ?? FALLBACK_PHOTO,
@@ -364,7 +390,7 @@ export default function Surface({
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  const quadrants = buildQuadrants(posts, sections, expanded);
+  const quadrants = buildQuadrants(posts, sections, expanded, blogPhase);
 
   useEffect(() => {
     for (const q of quadrants) router.prefetch(q.path);
@@ -390,6 +416,30 @@ export default function Surface({
     }, 600);
     return () => clearTimeout(t);
   }, [expanded]);
+
+  useEffect(() => {
+    const nowBlog = expanded === 3;
+    const wasBlog = prevBlogExpandedRef.current;
+    prevBlogExpandedRef.current = nowBlog;
+
+    if (nowBlog && !wasBlog) {
+      setBlogPhase("exiting");
+      const enterTimer = setTimeout(() => setBlogPhase("entering"), EXPAND_MS);
+      const idleTimer = setTimeout(
+        () => setBlogPhase("idle"),
+        EXPAND_MS +
+          BLOG_ITEM_MS +
+          BLOG_ITEM_STAGGER_MS * Math.max(posts.length, 1),
+      );
+      return () => {
+        clearTimeout(enterTimer);
+        clearTimeout(idleTimer);
+      };
+    }
+    if (!nowBlog && wasBlog) {
+      setBlogPhase("idle");
+    }
+  }, [expanded, posts.length]);
 
   useEffect(() => {
     if (expanded === null) return;
