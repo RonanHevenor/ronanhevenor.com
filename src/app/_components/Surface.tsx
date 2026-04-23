@@ -503,7 +503,7 @@ export default function Surface({
                     opacity: beingPushed ? 0 : 1,
                     transform: beingPushed ? "translateY(-4px)" : "translateY(0)",
                     transition: `opacity ${TEXT_FADE_MS}ms ease, transform ${TEXT_FADE_MS}ms ease`,
-                    transitionDelay: beingPushed ? `${ci * TEXT_CHAR_STEP_MS}ms` : "0ms",
+                    transitionDelay: `${ci * TEXT_CHAR_STEP_MS}ms`,
                   }}
                 >
                   {char === " " ? " " : char}
@@ -516,6 +516,7 @@ export default function Surface({
                 opacity: beingPushed ? 0 : 1,
                 transform: beingPushed ? "translateY(-8px)" : "translateY(0)",
                 transition: `opacity ${TEXT_FADE_MS}ms ease, transform ${TEXT_FADE_MS}ms ease`,
+                transitionDelay: `${q.title.length * TEXT_CHAR_STEP_MS}ms`,
               }}
             >
               {i === 3 && currentPost ? renderPost(currentPost) : q.body}
