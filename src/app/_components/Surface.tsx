@@ -144,22 +144,22 @@ function buildQuadrants(
     null,
     (
       <div
-        className="markdown max-w-2xl px-6 pb-6 text-xl leading-relaxed"
+        className="markdown stable-col px-6 pb-6 text-xl leading-relaxed"
         dangerouslySetInnerHTML={{ __html: sections.whatido }}
       />
     ),
     (
       <div
-        className="markdown max-w-2xl px-6 pb-6 text-xl leading-relaxed"
+        className="markdown stable-col px-6 pb-6 text-xl leading-relaxed"
         dangerouslySetInnerHTML={{ __html: sections.whoiam }}
       />
     ),
     posts.length === 0 ? (
-      <p className="max-w-2xl mx-auto px-6 pb-6 text-xl text-neutral-400">
+      <p className="stable-col mx-auto px-6 pb-6 text-xl text-neutral-400">
         No posts yet.
       </p>
     ) : (
-      <ul className="max-w-2xl mx-auto space-y-6 px-6 pb-6 text-xl">
+      <ul className="stable-col mx-auto space-y-6 px-6 pb-6 text-xl">
         {posts.map((p) => (
           <li key={p.slug}>
             <Link
@@ -197,7 +197,7 @@ function pathToIndex(
 // Post html is pre-sanitized by renderMarkdown() server-side.
 function renderPost(post: SurfacePost) {
   return (
-    <article className="max-w-2xl mx-auto space-y-4 px-6 pb-10 text-xl leading-relaxed">
+    <article className="stable-col mx-auto space-y-4 px-6 pb-10 text-xl leading-relaxed">
       <header className="space-y-1">
         <h2 className="text-lg font-medium tracking-tight">{post.title}</h2>
         <p className="text-sm text-neutral-500">{post.date}</p>
@@ -480,7 +480,7 @@ export default function Surface({
             )}
             <h1
               className={`relative z-10 px-6 pt-6 pb-4 text-xl font-medium tracking-tight whitespace-nowrap${
-                i === 3 ? " max-w-2xl mx-auto" : ""
+                i === 3 ? " stable-col mx-auto" : ""
               }`}
               style={
                 i === 0

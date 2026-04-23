@@ -25,6 +25,10 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+.stable-col {
+  width: min(calc(100vw - 3rem), 42rem);
+}
+
 @keyframes fade-up {
   from {
     opacity: 0;
