@@ -131,7 +131,7 @@ const QUADRANT_STYLES: { bg: string; fg: string }[] = [
   { bg: "bg-neutral-900", fg: "text-neutral-100" },
   { bg: "bg-neutral-200", fg: "text-neutral-900" },
   { bg: "bg-neutral-700", fg: "text-neutral-100" },
-  { bg: "bg-black", fg: "text-neutral-100" },
+  { bg: "bg-neutral-900", fg: "text-neutral-200" },
 ];
 
 function buildQuadrants(

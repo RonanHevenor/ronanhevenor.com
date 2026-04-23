@@ -36,6 +36,13 @@ body {
   }
 }
 
+.markdown {
+  font-family: var(--font-newsreader), ui-serif, Georgia, "Times New Roman",
+    serif;
+  font-feature-settings: "kern" 1, "liga" 1, "onum" 1;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.65;
+}
 .markdown > * + * {
   margin-top: 1em;
 }
