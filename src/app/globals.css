@@ -35,3 +35,58 @@ body {
     transform: translateY(0);
   }
 }
+
+.markdown > * + * {
+  margin-top: 1em;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.markdown h1 { font-size: 1.35em; }
+.markdown h2 { font-size: 1.2em; }
+.markdown h3 { font-size: 1.08em; }
+.markdown a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.markdown a:hover {
+  color: #3b82f6;
+}
+.markdown ul,
+.markdown ol {
+  padding-left: 1.5em;
+}
+.markdown ul { list-style: disc; }
+.markdown ol { list-style: decimal; }
+.markdown code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.9em;
+  padding: 0.15em 0.35em;
+  background: rgba(127, 127, 127, 0.15);
+  border-radius: 3px;
+}
+.markdown pre {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  padding: 1em;
+  background: rgba(127, 127, 127, 0.1);
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+.markdown pre code {
+  padding: 0;
+  background: transparent;
+}
+.markdown blockquote {
+  border-left: 2px solid currentColor;
+  padding-left: 1em;
+  opacity: 0.8;
+}
+.markdown hr {
+  border: none;
+  border-top: 1px solid currentColor;
+  opacity: 0.3;
+  margin: 1.5em 0;
+}

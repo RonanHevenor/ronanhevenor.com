@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# user-editable content (managed via /ronan admin)
+/data/photos.json
+/data/posts.json
+/data/sections.json
+/public/gallery/

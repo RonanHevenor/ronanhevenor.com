@@ -1,36 +1,115 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { Photo } from "@/lib/data";
 
-const photos = [
-  "RonanHevenor-01.jpg",
-  "RonanHevenor-04.jpg",
-  "RonanHevenor-05.jpg",
-  "RonanHevenor-06.jpg",
-  "RonanHevenor-07.jpg",
-  "RonanHevenor-08.jpg",
-  "RonanHevenor-09.jpg",
-  "RonanHevenor-10.jpg",
-  "RonanHevenor-11.jpg",
-  "RonanHevenor-12.jpg",
-  "RonanHevenor-13.jpg",
-  "RonanHevenor-14.jpg",
-  "RonanHevenor-15.jpg",
-  "RonanHevenor-16.jpg",
-  "2002-kingston-droneshot-17.jpg",
-  "2002-kingston-droneshot-18.jpg",
-  "2002-kingston-droneshot-19.jpg",
-  "2002-kingston-droneshot-20.jpg",
-  "2002-kingston-droneshot-21.jpg",
-  "2002-kingston-droneshot-22.jpg",
-  "2002-kingston-droneshot-23.jpg",
-  "2002-kingston-droneshot-24.jpg",
-  "2002-kingston-droneshot-25.jpg",
-  "2002-kingston-droneshot-26.jpg",
-  "2002-kingston-droneshot-27.jpg",
-];
+type SurfacePost = { slug: string; title: string; date: string; html: string };
+type SurfaceSections = { whatido: string; whoiam: string };
+
+const SLIDE_INTERVAL_MS = 5000;
+const SLIDE_FADE_MS = 700;
+
+const BIG = "55%";
+const HALF = "50%";
+
+const HOVER_MS = 380;
+const EXPAND_MS = 750;
+const TEXT_FADE_MS = 180;
+const TEXT_CHAR_STEP_MS = 25;
+
+function Slideshow({
+  photos,
+  onActivePhotoChange,
+  dim,
+}: {
+  photos: Photo[];
+  onActivePhotoChange?: (photo: Photo) => void;
+  dim: boolean;
+}) {
+  const [a, setA] = useState(0);
+  const [b, setB] = useState(1 % Math.max(photos.length, 1));
+  const [aActive, setAActive] = useState(true);
+  const tickRef = useRef(0);
+
+  useEffect(() => {
+    if (photos.length < 2) return;
+    const id = setInterval(() => {
+      tickRef.current += 1;
+      if (tickRef.current % 2 === 1) {
+        setAActive(false);
+        setTimeout(() => {
+          setA((prev) => (prev + 2) % photos.length);
+        }, SLIDE_FADE_MS + 100);
+      } else {
+        setAActive(true);
+        setTimeout(() => {
+          setB((prev) => (prev + 2) % photos.length);
+        }, SLIDE_FADE_MS + 100);
+      }
+    }, SLIDE_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [photos.length]);
+
+  const activePhoto = photos[aActive ? a : b];
+  const lastReportedRef = useRef<Photo | null>(null);
+  useEffect(() => {
+    if (!activePhoto) return;
+    if (lastReportedRef.current !== activePhoto) {
+      lastReportedRef.current = activePhoto;
+      onActivePhotoChange?.(activePhoto);
+    }
+  }, [activePhoto, onActivePhotoChange]);
+
+  const fade = `opacity ${SLIDE_FADE_MS}ms ease-in-out`;
+
+  if (photos.length === 0) {
+    return (
+      <div className="pointer-events-none absolute inset-0 z-0 bg-neutral-900" />
+    );
+  }
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+      <div
+        className="absolute inset-0"
+        style={{ opacity: aActive ? 1 : 0, transition: fade }}
+      >
+        <Image
+          src={`/gallery/${photos[a].src}`}
+          alt=""
+          fill
+          sizes="(min-width: 768px) 55vw, 100vw"
+          className="object-cover"
+          preload={a === 0}
+        />
+      </div>
+      {photos.length > 1 && (
+        <div
+          className="absolute inset-0"
+          style={{ opacity: aActive ? 0 : 1, transition: fade }}
+        >
+          <Image
+            src={`/gallery/${photos[b].src}`}
+            alt=""
+            fill
+            sizes="(min-width: 768px) 55vw, 100vw"
+            className="object-cover"
+          />
+        </div>
+      )}
+      <div
+        className="absolute inset-0 bg-black"
+        style={{
+          opacity: dim ? 0.3 : 0,
+          transition: `opacity ${HOVER_MS}ms ease`,
+        }}
+      />
+    </div>
+  );
+}
 
 type Quadrant = {
   path: string;
@@ -40,123 +119,71 @@ type Quadrant = {
   body: React.ReactNode;
 };
 
-const quadrants: Quadrant[] = [
-  {
-    path: "/whatisee",
-    bg: "bg-white",
-    fg: "text-neutral-900",
-    title: "What I see",
-    body: (
-      <>
-        <p className="max-w-2xl px-6 pb-6 text-lg leading-relaxed">
-          These are some of my favorite pictures I&apos;ve taken with my DJI Mini 4 Pro.
-        </p>
-        <div className="columns-1 gap-3 px-3 pb-6 md:columns-2 lg:columns-3">
-          {photos.map((file, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={file}
-              src={`/gallery/${file}`}
-              alt=""
-              loading={i < 6 ? "eager" : "lazy"}
-              className="mb-3 block w-full break-inside-avoid"
-            />
-          ))}
-        </div>
-      </>
-    ),
-  },
-  {
-    path: "/whatido",
-    bg: "bg-neutral-200",
-    fg: "text-neutral-900",
-    title: "What I do",
-    body: (
-      <p className="max-w-2xl px-6 pb-6 text-lg leading-relaxed">
-        I designed and built this website, as well as a few others for the clubs I love.
-        <br />
-        <a
-          href="https://poly.rpi.edu/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline underline-offset-4 hover:text-blue-500"
-        >
-          poly.rpi.edu
-        </a>
-        {" · "}
-        <a
-          href="https://rpai.club/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline underline-offset-4 hover:text-blue-500"
-        >
-          rpai.club
-        </a>
-        <br />
-        You can see more things I&apos;ve done on my Github and on my Linkedin.
-        <br />
-        <a
-          href="https://github.com/RonanHevenor"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline underline-offset-4 hover:text-blue-500"
-        >
-          github.com/RonanHevenor
-        </a>
-        {" · "}
-        <a
-          href="https://www.linkedin.com/in/hevenor/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline underline-offset-4 hover:text-blue-500"
-        >
-          linkedin.com/in/hevenor
-        </a>
-      </p>
-    ),
-  },
-  {
-    path: "/whoiam",
-    bg: "bg-neutral-700",
-    fg: "text-neutral-100",
-    title: "Who I am",
-    body: (
-      <div className="max-w-2xl space-y-4 px-6 pb-6 text-lg leading-relaxed">
-        <p>
-          Hi, I&apos;m Ronan! I&apos;m a computer scientist and leader seeking to gain extensive
-          experience in STEM-related leadership roles to advance my understanding of technology and
-          its application in solving global challenges. Leveraging my love for learning and
-          innovation, I aim to use my skills in mathematics, science, and collaborative
-          problem-solving to make a meaningful impact on the world.
-        </p>
-        <p>
-          I have extensive experience competing in the FIRST Tech Challenge (Team 701 The GONK
-          Squad) and the FIRST Robotics Competition (Team 78 Air Strike), as well as multiple events
-          with North Kingstown&apos;s Chapters of DECA and the Technology Student Association.
-        </p>
-      </div>
-    ),
-  },
-  {
-    path: "/mythoughts",
-    bg: "bg-black",
-    fg: "text-neutral-100",
-    title: "My thoughts",
-    body: (
-      <ul className="space-y-6 px-6 pb-6 text-lg">
-        <li>
-          <Link
-            href="/mythoughts/lorem-ipsum"
-            className="underline underline-offset-4 hover:text-blue-500"
-          >
-            Lorem ipsum
-          </Link>
-          <span className="ml-3 text-sm text-neutral-500">2026-04-21</span>
-        </li>
-      </ul>
-    ),
-  },
-];
+// Rendered HTML is produced by our sanitizing markdown pipeline
+// (src/lib/markdown.ts drops raw HTML tokens), so `dangerouslySetInnerHTML`
+// here receives only markdown-generated output, never admin-entered HTML.
+function buildQuadrants(
+  posts: SurfacePost[],
+  sections: SurfaceSections,
+): Quadrant[] {
+  return [
+    {
+      path: "/whatisee",
+      bg: "bg-neutral-900",
+      fg: "text-neutral-100",
+      title: "What I see",
+      body: null,
+    },
+    {
+      path: "/whatido",
+      bg: "bg-neutral-200",
+      fg: "text-neutral-900",
+      title: "What I do",
+      body: (
+        <div
+          className="markdown max-w-2xl px-6 pb-6 text-lg leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: sections.whatido }}
+        />
+      ),
+    },
+    {
+      path: "/whoiam",
+      bg: "bg-neutral-700",
+      fg: "text-neutral-100",
+      title: "Who I am",
+      body: (
+        <div
+          className="markdown max-w-2xl px-6 pb-6 text-lg leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: sections.whoiam }}
+        />
+      ),
+    },
+    {
+      path: "/mythoughts",
+      bg: "bg-black",
+      fg: "text-neutral-100",
+      title: "My thoughts",
+      body:
+        posts.length === 0 ? (
+          <p className="px-6 pb-6 text-lg text-neutral-400">No posts yet.</p>
+        ) : (
+          <ul className="space-y-6 px-6 pb-6 text-lg">
+            {posts.map((p) => (
+              <li key={p.slug}>
+                <Link
+                  href={`/mythoughts/${p.slug}`}
+                  className="underline underline-offset-4 hover:text-blue-500"
+                >
+                  {p.title}
+                </Link>
+                <span className="ml-3 text-sm text-neutral-500">{p.date}</span>
+              </li>
+            ))}
+          </ul>
+        ),
+    },
+  ];
+}
 
 const PATH_TO_INDEX: Record<string, number> = {
   "/whatisee": 0,
@@ -172,40 +199,21 @@ function pathToIndex(pathname: string): number | null {
   return null;
 }
 
-const loremPost = (
-  <article className="max-w-2xl space-y-4 px-6 pb-10 text-base leading-relaxed">
-    <header className="space-y-1">
-      <h2 className="text-lg font-medium tracking-tight">Lorem ipsum</h2>
-      <p className="text-sm text-neutral-500">2026-04-21</p>
-    </header>
-    <p>
-      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
-      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
-      veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
-      commodo consequat.
-    </p>
-    <p>
-      Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
-      dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-      proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-    </p>
-    <p>
-      Sed ut perspiciatis unde omnis iste natus error sit voluptatem
-      accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab
-      illo inventore veritatis et quasi architecto beatae vitae dicta sunt
-      explicabo.
-    </p>
-  </article>
-);
-
-const BIG = "55%";
-const SMALL = "45%";
-const HALF = "50%";
-
-const HOVER_MS = 380;
-const EXPAND_MS = 750;
-const TEXT_FADE_MS = 180;
-const TEXT_CHAR_STEP_MS = 25;
+// Post html is pre-sanitized by renderMarkdown() server-side.
+function renderPost(post: SurfacePost) {
+  return (
+    <article className="max-w-2xl space-y-4 px-6 pb-10 text-base leading-relaxed">
+      <header className="space-y-1">
+        <h2 className="text-lg font-medium tracking-tight">{post.title}</h2>
+        <p className="text-sm text-neutral-500">{post.date}</p>
+      </header>
+      <div
+        className="markdown"
+        dangerouslySetInnerHTML={{ __html: post.html }}
+      />
+    </article>
+  );
+}
 
 type Box = { top: string; left: string; width: string; height: string };
 
@@ -218,18 +226,31 @@ function idleBox(row: number, col: number): Box {
   };
 }
 
-function hoverBox(row: number, col: number, hRow: number, hCol: number): Box {
+function hoverBox(
+  row: number,
+  col: number,
+  hRow: number,
+  hCol: number,
+  bigW: string = BIG,
+  bigH: string = BIG,
+): Box {
+  const smallW = `calc(100% - (${bigW}))`;
+  const smallH = `calc(100% - (${bigH}))`;
   return {
-    width: col === hCol ? BIG : SMALL,
-    height: row === hRow ? BIG : SMALL,
-    left: col === 0 ? "0%" : hCol === 0 ? BIG : SMALL,
-    top: row === 0 ? "0%" : hRow === 0 ? BIG : SMALL,
+    width: col === hCol ? bigW : smallW,
+    height: row === hRow ? bigH : smallH,
+    left: col === 0 ? "0%" : hCol === 0 ? bigW : smallW,
+    top: row === 0 ? "0%" : hRow === 0 ? bigH : smallH,
   };
 }
 
-// Each non-clicked tile collapses into the edge nearest the clicked one.
-// Perpendicular dimension matches the clicked tile so adjacent edges stay
-// touching the entire transition — no gap, no whitespace, ever.
+function aspectHoverSize(imgAspect: number, viewportAspect: number): [string, string] {
+  const MAX = 65;
+  const ratio = imgAspect / viewportAspect;
+  const [w, h] = ratio >= 1 ? [MAX, MAX / ratio] : [MAX * ratio, MAX];
+  return [`${w}%`, `${h}%`];
+}
+
 function expandedBox(row: number, col: number, cR: number, cC: number): Box {
   if (row === cR && col === cC) {
     return { top: "0%", left: "0%", width: "100%", height: "100%" };
@@ -253,17 +274,102 @@ function expandedBox(row: number, col: number, cR: number, cC: number): Box {
   return { top, left, width, height };
 }
 
-export default function Surface() {
+const FALLBACK_PHOTO: Photo = { src: "", w: 16, h: 9 };
+
+const TITLE_COLOR_MS = 700;
+
+// Sample the top band of an image and return its luminance (0 dark .. 1 bright).
+// Used to pick a contrasting title color per photo.
+function sampleBrightness(url: string): Promise<number> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const sampleH = Math.max(1, Math.round(img.naturalHeight * 0.25));
+        const scale = 40 / img.naturalWidth;
+        const cw = 40;
+        const ch = Math.max(1, Math.round(sampleH * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = cw;
+        canvas.height = ch;
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) return resolve(0.5);
+        ctx.drawImage(
+          img,
+          0, 0, img.naturalWidth, sampleH,
+          0, 0, cw, ch,
+        );
+        const data = ctx.getImageData(0, 0, cw, ch).data;
+        let sum = 0;
+        let count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+          count++;
+        }
+        resolve(count === 0 ? 0.5 : sum / (count * 255));
+      } catch {
+        resolve(0.5);
+      }
+    };
+    img.onerror = () => resolve(0.5);
+    img.src = url;
+  });
+}
+
+export default function Surface({
+  photos,
+  posts,
+  sections,
+}: {
+  photos: Photo[];
+  posts: SurfacePost[];
+  sections: SurfaceSections;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const expanded = pathToIndex(pathname);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [activePhoto, setActivePhoto] = useState<Photo>(
+    photos[0] ?? FALLBACK_PHOTO,
+  );
+  const [viewportAspect, setViewportAspect] = useState(16 / 9);
+  const [photoBrightness, setPhotoBrightness] = useState(0.5);
+  const brightnessCacheRef = useRef<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    const src = activePhoto?.src;
+    if (!src) return;
+    const cache = brightnessCacheRef.current;
+    const cached = cache.get(src);
+    if (cached !== undefined) {
+      setPhotoBrightness(cached);
+      return;
+    }
+    let cancelled = false;
+    sampleBrightness(`/gallery/${src}`).then((b) => {
+      cache.set(src, b);
+      if (!cancelled) setPhotoBrightness(b);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activePhoto?.src]);
+
+  useEffect(() => {
+    const update = () => setViewportAspect(window.innerWidth / window.innerHeight);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  const quadrants = buildQuadrants(posts, sections);
 
   useEffect(() => {
     for (const q of quadrants) router.prefetch(q.path);
     router.prefetch("/");
-    router.prefetch("/mythoughts/lorem-ipsum");
-  }, [router]);
+    for (const p of posts) router.prefetch(`/mythoughts/${p.slug}`);
+  }, [router, posts, quadrants]);
 
   useEffect(() => {
     if (expanded !== null) setHovered(null);
@@ -278,9 +384,18 @@ export default function Surface() {
     return () => window.removeEventListener("keydown", onKey);
   }, [expanded, router]);
 
+  if (pathname.startsWith("/ronan")) return null;
+
+  const postSlug = pathname.startsWith("/mythoughts/")
+    ? pathname.slice("/mythoughts/".length)
+    : null;
+  const currentPost = postSlug
+    ? posts.find((p) => p.slug === postSlug) ?? null
+    : null;
+
   const handleClick = (i: number, e: React.MouseEvent) => {
-    // Let real interactive elements (links) keep their default behaviour.
     if ((e.target as HTMLElement).closest("a")) return;
+    if (i === 0) return;
     if (expanded !== null) {
       router.push("/");
       return;
@@ -314,7 +429,11 @@ export default function Surface() {
         if (expanded !== null) {
           box = expandedBox(row, col, Math.floor(expanded / 2), expanded % 2);
         } else if (hovered !== null) {
-          box = hoverBox(row, col, Math.floor(hovered / 2), hovered % 2);
+          const [bigW, bigH] =
+            hovered === 0
+              ? aspectHoverSize(activePhoto.w / activePhoto.h, viewportAspect)
+              : [BIG, BIG];
+          box = hoverBox(row, col, Math.floor(hovered / 2), hovered % 2, bigW, bigH);
         } else {
           box = idleBox(row, col);
         }
@@ -332,9 +451,29 @@ export default function Surface() {
               overflowX: "hidden",
               overflowY: isExpanded ? "auto" : "hidden",
             }}
-            className={`${q.bg} ${q.fg} absolute cursor-pointer`}
+            className={`${q.bg} ${q.fg} absolute ${i === 0 ? "cursor-default" : "cursor-pointer"}`}
           >
-            <h1 className="px-6 pt-6 pb-4 text-xl font-medium tracking-tight whitespace-nowrap">
+            {i === 0 && (
+              <Slideshow
+                photos={photos}
+                onActivePhotoChange={setActivePhoto}
+                dim={hovered !== 0 && expanded !== 0}
+              />
+            )}
+            <h1
+              className="relative z-10 px-6 pt-6 pb-4 text-xl font-medium tracking-tight whitespace-nowrap"
+              style={
+                i === 0
+                  ? {
+                      color:
+                        hovered === 0 && photoBrightness > 0.55
+                          ? "#000"
+                          : "#fff",
+                      transition: `color ${TITLE_COLOR_MS}ms ease-in-out`,
+                    }
+                  : undefined
+              }
+            >
               {q.title.split("").map((char, ci) => (
                 <span
                   key={ci}
@@ -351,13 +490,14 @@ export default function Surface() {
               ))}
             </h1>
             <div
+              className="relative z-10"
               style={{
                 opacity: beingPushed ? 0 : 1,
                 transform: beingPushed ? "translateY(-8px)" : "translateY(0)",
                 transition: `opacity ${TEXT_FADE_MS}ms ease, transform ${TEXT_FADE_MS}ms ease`,
               }}
             >
-              {i === 3 && pathname === "/mythoughts/lorem-ipsum" ? loremPost : q.body}
+              {i === 3 && currentPost ? renderPost(currentPost) : q.body}
             </div>
           </section>
         );
