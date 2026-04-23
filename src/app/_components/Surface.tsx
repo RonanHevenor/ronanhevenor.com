@@ -332,6 +332,7 @@ export default function Surface({
   const [hovered, setHovered] = useState<number | null>(null);
   const [suppressHover, setSuppressHover] = useState(false);
   const prevExpandedRef = useRef<number | null>(expanded);
+  const suppressedAtRef = useRef<number | null>(null);
   const [activePhoto, setActivePhoto] = useState<Photo>(
     photos[0] ?? FALLBACK_PHOTO,
   );
@@ -380,6 +381,7 @@ export default function Surface({
   useEffect(() => {
     if (prevExpandedRef.current !== null && expanded === null) {
       setSuppressHover(true);
+      suppressedAtRef.current = null;
     }
     prevExpandedRef.current = expanded;
   }, [expanded]);
@@ -413,15 +415,18 @@ export default function Surface({
   };
   const handleEnter = (i: number) => {
     if (expanded !== null) return;
-    if (suppressHover) return;
-    setHovered(i);
-  };
-  const handleMove = (i: number) => {
-    if (expanded !== null) return;
     if (suppressHover) {
+      if (suppressedAtRef.current === null) {
+        suppressedAtRef.current = i;
+        return;
+      }
+      if (suppressedAtRef.current === i) return;
       setSuppressHover(false);
+      suppressedAtRef.current = null;
       setHovered(i);
+      return;
     }
+    setHovered(i);
   };
   const handleLeave = (i: number) => {
     if (expanded !== null) return;
@@ -459,7 +464,6 @@ export default function Surface({
           <section
             key={q.path}
             onMouseEnter={() => handleEnter(i)}
-            onMouseMove={() => handleMove(i)}
             onMouseLeave={() => handleLeave(i)}
             onClick={(e) => handleClick(i, e)}
             style={{
