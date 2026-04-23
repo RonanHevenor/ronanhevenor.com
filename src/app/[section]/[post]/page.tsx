@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getPosts, getSections, type Post } from "@/lib/data";
+import { SITE, bodyExcerpt } from "@/lib/seo";
 
 type Params = { section: string; post: string };
 
@@ -30,11 +31,32 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { section, post } = await params;
   const sec = await resolveBlogSection(section);
-  if (sec.kind === "missing") return { title: "Ronan Hevenor" };
+  if (sec.kind === "missing") return { title: SITE.title };
   const posts = await getPosts();
   const res = findPost(posts, post);
-  if (res.kind === "missing") return { title: "Ronan Hevenor" };
-  return { title: `${res.post.title} — Ronan Hevenor` };
+  if (res.kind === "missing") return { title: SITE.title };
+  const description = bodyExcerpt(res.post.body);
+  const canonical = `/${sec.blog.slug}/${res.post.slug}`;
+  return {
+    title: res.post.title,
+    description,
+    alternates: { canonical },
+    authors: [{ name: SITE.author, url: SITE.url }],
+    openGraph: {
+      type: "article",
+      url: `${SITE.url}${canonical}`,
+      title: `${res.post.title} — ${SITE.title}`,
+      description,
+      siteName: SITE.title,
+      publishedTime: res.post.date,
+      authors: [SITE.author],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${res.post.title} — ${SITE.title}`,
+      description,
+    },
+  };
 }
 
 export default async function Page({
@@ -51,5 +73,25 @@ export default async function Page({
   if (sec.kind === "redirect" || res.kind === "redirect") {
     redirect(`/${sec.blog.slug}/${res.post.slug}`);
   }
-  return null;
+
+  const canonical = `${SITE.url}/${sec.blog.slug}/${res.post.slug}`;
+  const articleLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: res.post.title,
+    description: bodyExcerpt(res.post.body),
+    datePublished: res.post.date,
+    dateModified: res.post.date,
+    author: { "@type": "Person", name: SITE.author, url: SITE.url },
+    publisher: { "@type": "Person", name: SITE.author, url: SITE.url },
+    mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+    url: canonical,
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
+    />
+  );
 }
