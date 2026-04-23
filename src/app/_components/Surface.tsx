@@ -144,13 +144,13 @@ function buildQuadrants(
     null,
     (
       <div
-        className="markdown max-w-2xl mx-auto px-6 pb-6 text-lg leading-relaxed"
+        className="markdown max-w-2xl px-6 pb-6 text-lg leading-relaxed"
         dangerouslySetInnerHTML={{ __html: sections.whatido }}
       />
     ),
     (
       <div
-        className="markdown max-w-2xl mx-auto px-6 pb-6 text-lg leading-relaxed"
+        className="markdown max-w-2xl px-6 pb-6 text-lg leading-relaxed"
         dangerouslySetInnerHTML={{ __html: sections.whoiam }}
       />
     ),
@@ -479,7 +479,9 @@ export default function Surface({
               />
             )}
             <h1
-              className="relative z-10 px-6 pt-6 pb-4 text-xl font-medium tracking-tight whitespace-nowrap"
+              className={`relative z-10 px-6 pt-6 pb-4 text-xl font-medium tracking-tight whitespace-nowrap${
+                i === 3 ? " max-w-2xl mx-auto" : ""
+              }`}
               style={
                 i === 0
                   ? {
