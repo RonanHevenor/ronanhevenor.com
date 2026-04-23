@@ -431,7 +431,7 @@ export default function Surface({
 
   const layoutTiming =
     expanded !== null
-      ? `${EXPAND_MS}ms cubic-bezier(0.7, 0, 0.2, 1)`
+      ? `${EXPAND_MS}ms cubic-bezier(0, 0, 0.2, 1)`
       : `${HOVER_MS}ms cubic-bezier(0.3, 0, 0.2, 1)`;
   const transition = `top ${layoutTiming}, left ${layoutTiming}, width ${layoutTiming}, height ${layoutTiming}`;
 
