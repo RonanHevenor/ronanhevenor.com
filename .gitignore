@@ -45,3 +45,6 @@ next-env.d.ts
 /data/posts.json
 /data/sections.json
 /public/gallery/
+
+# server-specific (not meant to ship in repo)
+/deploy.sh
