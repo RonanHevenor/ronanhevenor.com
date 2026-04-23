@@ -137,9 +137,11 @@ const QUADRANT_STYLES: { bg: string; fg: string }[] = [
 function buildQuadrants(
   posts: SurfacePost[],
   sections: SurfaceSections,
+  expanded: number | null,
 ): Quadrant[] {
   const q = sections.quadrants;
   const blogSlug = q[3].slug;
+  const blogCenter = expanded === 3 ? " mx-auto" : "";
   const bodies: React.ReactNode[] = [
     null,
     (
@@ -155,11 +157,11 @@ function buildQuadrants(
       />
     ),
     posts.length === 0 ? (
-      <p className="stable-col mx-auto px-6 pb-6 text-xl text-neutral-400">
+      <p className={`stable-col${blogCenter} px-6 pb-6 text-xl text-neutral-400`}>
         No posts yet.
       </p>
     ) : (
-      <ul className="stable-col mx-auto space-y-6 px-6 pb-6 text-xl">
+      <ul className={`stable-col${blogCenter} space-y-6 px-6 pb-6 text-xl`}>
         {posts.map((p) => (
           <li key={p.slug}>
             <Link
@@ -197,7 +199,7 @@ function pathToIndex(
 // Post html is pre-sanitized by renderMarkdown() server-side.
 function renderPost(post: SurfacePost) {
   return (
-    <article className="stable-col mx-auto space-y-4 px-6 pb-10 text-xl leading-relaxed">
+    <article className="stable-col mx-auto space-y-4 px-6 pb-10 text-xl leading-relaxed ronan-post">
       <header className="space-y-1">
         <h2 className="text-lg font-medium tracking-tight">{post.title}</h2>
         <p className="text-sm text-neutral-500">{post.date}</p>
@@ -362,7 +364,7 @@ export default function Surface({
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  const quadrants = buildQuadrants(posts, sections);
+  const quadrants = buildQuadrants(posts, sections, expanded);
 
   useEffect(() => {
     for (const q of quadrants) router.prefetch(q.path);
@@ -480,7 +482,7 @@ export default function Surface({
             )}
             <h1
               className={`relative z-10 px-6 pt-6 pb-4 text-xl font-medium tracking-tight whitespace-nowrap${
-                i === 3 ? " stable-col mx-auto" : ""
+                i === 3 && expanded === 3 ? " stable-col mx-auto" : ""
               }`}
               style={
                 i === 0
