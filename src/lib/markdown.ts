@@ -1,11 +1,12 @@
 import { Marked } from "marked";
+import { markedSmartypants } from "marked-smartypants";
 
 // Dedicated instance so our renderer overrides don't leak to other consumers.
 // We drop raw HTML tokens (both block and inline) so admin-entered markdown
 // cannot inject <script>, <iframe>, event handlers, etc. Only the standard
 // markdown features (paragraphs, emphasis, links, lists, code, headings) are
 // rendered.
-const md = new Marked({
+const md = new Marked(markedSmartypants(), {
   gfm: true,
   breaks: true,
   renderer: {
