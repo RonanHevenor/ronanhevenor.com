@@ -156,13 +156,13 @@ export async function saveQuadrants(
   if (!Array.isArray(inputs) || inputs.length !== 4) {
     throw new Error("exactly 4 quadrants required");
   }
-  const normalized: Quadrant[] = inputs.map((q) => ({
+  const cleaned = inputs.map((q) => ({
     title: String(q?.title ?? "").trim(),
     slug: String(q?.slug ?? "")
       .trim()
       .toLowerCase(),
   }));
-  for (const q of normalized) {
+  for (const q of cleaned) {
     if (!q.title) throw new Error("title cannot be empty");
     if (!q.slug) throw new Error("slug cannot be empty");
     if (!SLUG_RE.test(q.slug)) {
@@ -174,10 +174,22 @@ export async function saveQuadrants(
       throw new Error(`reserved slug "${q.slug}"`);
     }
   }
-  const slugSet = new Set(normalized.map((q) => q.slug));
+  const slugSet = new Set(cleaned.map((q) => q.slug));
   if (slugSet.size !== 4) throw new Error("slugs must be unique");
+
   const current = await getSections();
-  await saveSections({ ...current, quadrants: normalized });
+  const next: Quadrant[] = cleaned.map((c, i) => {
+    const prev = current.quadrants[i];
+    const history = new Set(prev.pastSlugs ?? []);
+    if (prev.slug !== c.slug) history.add(prev.slug);
+    history.delete(c.slug);
+    return {
+      title: c.title,
+      slug: c.slug,
+      pastSlugs: Array.from(history),
+    };
+  });
+  await saveSections({ ...current, quadrants: next });
   revalidatePath("/", "layout");
 }
 

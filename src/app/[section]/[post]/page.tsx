@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getPosts, getSections } from "@/lib/data";
 
 type Params = { section: string; post: string };
+
+async function resolveBlogSection(section: string) {
+  const { quadrants } = await getSections();
+  const blog = quadrants[3];
+  if (!blog) return { kind: "missing" as const };
+  if (section === blog.slug) return { kind: "current" as const, blog };
+  if ((blog.pastSlugs ?? []).includes(section)) {
+    return { kind: "redirect" as const, blog };
+  }
+  return { kind: "missing" as const };
+}
 
 export async function generateMetadata({
   params,
@@ -10,9 +21,8 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { section, post } = await params;
-  const { quadrants } = await getSections();
-  const blogSlug = quadrants[3].slug;
-  if (section !== blogSlug) return { title: "Ronan Hevenor" };
+  const res = await resolveBlogSection(section);
+  if (res.kind === "missing") return { title: "Ronan Hevenor" };
   const posts = await getPosts();
   const p = posts.find((x) => x.slug === post);
   return { title: p ? `${p.title} — Ronan Hevenor` : "Ronan Hevenor" };
@@ -24,10 +34,10 @@ export default async function Page({
   params: Promise<Params>;
 }) {
   const { section, post } = await params;
-  const { quadrants } = await getSections();
-  const blogSlug = quadrants[3].slug;
-  if (section !== blogSlug) notFound();
+  const res = await resolveBlogSection(section);
+  if (res.kind === "missing") notFound();
   const posts = await getPosts();
   if (!posts.find((p) => p.slug === post)) notFound();
+  if (res.kind === "redirect") redirect(`/${res.blog.slug}/${post}`);
   return null;
 }

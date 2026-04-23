@@ -16,6 +16,7 @@ export type Post = {
 export type Quadrant = {
   title: string;
   slug: string;
+  pastSlugs?: string[];
 };
 export type Sections = {
   whatido: string; // markdown
@@ -53,10 +54,18 @@ export const getSections = async (): Promise<Sections> => {
   const rawQuadrants = Array.isArray(raw.quadrants) ? raw.quadrants : [];
   const quadrants: Quadrant[] = DEFAULT_QUADRANTS.map((d, i) => {
     const r = rawQuadrants[i];
+    const slug =
+      typeof r?.slug === "string" && r.slug.trim() ? r.slug : d.slug;
+    const past = Array.isArray(r?.pastSlugs)
+      ? r.pastSlugs.filter(
+          (s): s is string => typeof s === "string" && !!s && s !== slug,
+        )
+      : [];
     return {
       title:
         typeof r?.title === "string" && r.title.trim() ? r.title : d.title,
-      slug: typeof r?.slug === "string" && r.slug.trim() ? r.slug : d.slug,
+      slug,
+      pastSlugs: past,
     };
   });
   return {

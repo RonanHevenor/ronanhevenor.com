@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getSections } from "@/lib/data";
 
 type Params = { section: string };
+
+async function resolveSection(section: string) {
+  const { quadrants } = await getSections();
+  const current = quadrants.find((q) => q.slug === section);
+  if (current) return { kind: "current" as const, quadrant: current };
+  const historic = quadrants.find((q) =>
+    (q.pastSlugs ?? []).includes(section),
+  );
+  if (historic) return { kind: "redirect" as const, quadrant: historic };
+  return { kind: "missing" as const };
+}
 
 export async function generateMetadata({
   params,
@@ -10,9 +21,9 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { section } = await params;
-  const { quadrants } = await getSections();
-  const q = quadrants.find((x) => x.slug === section);
-  return { title: q ? `${q.title} — Ronan Hevenor` : "Ronan Hevenor" };
+  const res = await resolveSection(section);
+  if (res.kind === "missing") return { title: "Ronan Hevenor" };
+  return { title: `${res.quadrant.title} — Ronan Hevenor` };
 }
 
 export default async function Page({
@@ -21,7 +32,8 @@ export default async function Page({
   params: Promise<Params>;
 }) {
   const { section } = await params;
-  const { quadrants } = await getSections();
-  if (!quadrants.find((q) => q.slug === section)) notFound();
+  const res = await resolveSection(section);
+  if (res.kind === "missing") notFound();
+  if (res.kind === "redirect") redirect(`/${res.quadrant.slug}`);
   return null;
 }
