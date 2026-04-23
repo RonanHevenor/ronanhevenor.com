@@ -330,7 +330,6 @@ export default function Surface({
   const [hovered, setHovered] = useState<number | null>(null);
   const [suppressHover, setSuppressHover] = useState(false);
   const prevExpandedRef = useRef<number | null>(expanded);
-  const suppressedAtRef = useRef<number | null>(null);
   const [activePhoto, setActivePhoto] = useState<Photo>(
     photos[0] ?? FALLBACK_PHOTO,
   );
@@ -377,11 +376,13 @@ export default function Surface({
   }, [expanded]);
 
   useEffect(() => {
-    if (prevExpandedRef.current !== null && expanded === null) {
-      setSuppressHover(true);
-      suppressedAtRef.current = null;
-    }
+    const justCollapsed =
+      prevExpandedRef.current !== null && expanded === null;
     prevExpandedRef.current = expanded;
+    if (!justCollapsed) return;
+    setSuppressHover(true);
+    const t = setTimeout(() => setSuppressHover(false), 600);
+    return () => clearTimeout(t);
   }, [expanded]);
 
   useEffect(() => {
@@ -413,17 +414,7 @@ export default function Surface({
   };
   const handleEnter = (i: number) => {
     if (expanded !== null) return;
-    if (suppressHover) {
-      if (suppressedAtRef.current === null) {
-        suppressedAtRef.current = i;
-        return;
-      }
-      if (suppressedAtRef.current === i) return;
-      setSuppressHover(false);
-      suppressedAtRef.current = null;
-      setHovered(i);
-      return;
-    }
+    if (suppressHover) return;
     setHovered(i);
   };
   const handleLeave = (i: number) => {
