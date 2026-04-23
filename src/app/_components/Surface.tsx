@@ -330,6 +330,8 @@ export default function Surface({
   const pathname = usePathname();
   const expanded = pathToIndex(pathname);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [suppressHover, setSuppressHover] = useState(false);
+  const prevExpandedRef = useRef<number | null>(expanded);
   const [activePhoto, setActivePhoto] = useState<Photo>(
     photos[0] ?? FALLBACK_PHOTO,
   );
@@ -376,6 +378,13 @@ export default function Surface({
   }, [expanded]);
 
   useEffect(() => {
+    if (prevExpandedRef.current !== null && expanded === null) {
+      setSuppressHover(true);
+    }
+    prevExpandedRef.current = expanded;
+  }, [expanded]);
+
+  useEffect(() => {
     if (expanded === null) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") router.push("/");
@@ -404,7 +413,15 @@ export default function Surface({
   };
   const handleEnter = (i: number) => {
     if (expanded !== null) return;
+    if (suppressHover) return;
     setHovered(i);
+  };
+  const handleMove = (i: number) => {
+    if (expanded !== null) return;
+    if (suppressHover) {
+      setSuppressHover(false);
+      setHovered(i);
+    }
   };
   const handleLeave = (i: number) => {
     if (expanded !== null) return;
@@ -442,6 +459,7 @@ export default function Surface({
           <section
             key={q.path}
             onMouseEnter={() => handleEnter(i)}
+            onMouseMove={() => handleMove(i)}
             onMouseLeave={() => handleLeave(i)}
             onClick={(e) => handleClick(i, e)}
             style={{
