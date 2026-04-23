@@ -23,8 +23,9 @@ export async function login(formData: FormData): Promise<void> {
 
   const h = await headers();
   const ip =
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    h.get("cf-connecting-ip") ||
     h.get("x-real-ip") ||
+    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     "unknown";
 
   const rate = checkRateLimit(`login:${ip}`);
