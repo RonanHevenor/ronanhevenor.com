@@ -141,7 +141,7 @@ function buildQuadrants(
 ): Quadrant[] {
   const q = sections.quadrants;
   const blogSlug = q[3].slug;
-  const blogCenter = expanded === 3 ? " mx-auto" : "";
+  const blogCenter = expanded === 3 ? " is-centered" : "";
   const bodies: React.ReactNode[] = [
     null,
     (
@@ -199,7 +199,7 @@ function pathToIndex(
 // Post html is pre-sanitized by renderMarkdown() server-side.
 function renderPost(post: SurfacePost) {
   return (
-    <article className="stable-col mx-auto space-y-4 px-6 pb-10 text-xl leading-relaxed ronan-post">
+    <article className="stable-col is-centered space-y-4 px-6 pb-10 text-xl leading-relaxed">
       <header className="space-y-1">
         <h2 className="text-lg font-medium tracking-tight">{post.title}</h2>
         <p className="text-sm text-neutral-500">{post.date}</p>
@@ -482,7 +482,7 @@ export default function Surface({
             )}
             <h1
               className={`relative z-10 px-6 pt-6 pb-4 text-xl font-medium tracking-tight whitespace-nowrap${
-                i === 3 && expanded === 3 ? " stable-col mx-auto" : ""
+                i === 3 ? ` stable-col${expanded === 3 ? " is-centered" : ""}` : ""
               }`}
               style={
                 i === 0
