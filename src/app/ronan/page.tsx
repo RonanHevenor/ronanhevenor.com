@@ -119,7 +119,6 @@ function PhotosTab({
   }
 
   async function onDelete(src: string) {
-    if (!confirm(`delete ${src}?`)) return;
     setBusy(true);
     try {
       await deletePhoto(src);
@@ -226,7 +225,6 @@ function PostsTab({
   }
 
   async function onDelete(slug: string) {
-    if (!confirm(`delete "${slug}"?`)) return;
     setBusy(true);
     try {
       await deletePost(slug);
