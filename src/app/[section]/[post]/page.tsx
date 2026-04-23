@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { getPosts, getSections } from "@/lib/data";
+import { getPosts, getSections, type Post } from "@/lib/data";
 
 type Params = { section: string; post: string };
 
@@ -15,17 +15,26 @@ async function resolveBlogSection(section: string) {
   return { kind: "missing" as const };
 }
 
+function findPost(posts: Post[], slug: string) {
+  const current = posts.find((p) => p.slug === slug);
+  if (current) return { kind: "current" as const, post: current };
+  const historic = posts.find((p) => (p.pastSlugs ?? []).includes(slug));
+  if (historic) return { kind: "redirect" as const, post: historic };
+  return { kind: "missing" as const };
+}
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { section, post } = await params;
-  const res = await resolveBlogSection(section);
-  if (res.kind === "missing") return { title: "Ronan Hevenor" };
+  const sec = await resolveBlogSection(section);
+  if (sec.kind === "missing") return { title: "Ronan Hevenor" };
   const posts = await getPosts();
-  const p = posts.find((x) => x.slug === post);
-  return { title: p ? `${p.title} — Ronan Hevenor` : "Ronan Hevenor" };
+  const res = findPost(posts, post);
+  if (res.kind === "missing") return { title: "Ronan Hevenor" };
+  return { title: `${res.post.title} — Ronan Hevenor` };
 }
 
 export default async function Page({
@@ -34,10 +43,13 @@ export default async function Page({
   params: Promise<Params>;
 }) {
   const { section, post } = await params;
-  const res = await resolveBlogSection(section);
-  if (res.kind === "missing") notFound();
+  const sec = await resolveBlogSection(section);
+  if (sec.kind === "missing") notFound();
   const posts = await getPosts();
-  if (!posts.find((p) => p.slug === post)) notFound();
-  if (res.kind === "redirect") redirect(`/${res.blog.slug}/${post}`);
+  const res = findPost(posts, post);
+  if (res.kind === "missing") notFound();
+  if (sec.kind === "redirect" || res.kind === "redirect") {
+    redirect(`/${sec.blog.slug}/${res.post.slug}`);
+  }
   return null;
 }

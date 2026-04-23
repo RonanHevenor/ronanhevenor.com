@@ -12,6 +12,7 @@ export type Post = {
   title: string;
   date: string;
   body: string; // markdown
+  pastSlugs?: string[];
 };
 export type Quadrant = {
   title: string;

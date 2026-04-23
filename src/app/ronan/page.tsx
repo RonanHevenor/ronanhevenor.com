@@ -10,6 +10,7 @@ import {
   logout,
   saveQuadrants,
   saveSection,
+  updatePost,
   uploadPhotos,
 } from "./actions";
 
@@ -298,27 +299,13 @@ function PostsTab({
       ) : (
         <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
           {posts.map((p) => (
-            <li key={p.slug} className="flex items-center justify-between gap-4 py-3">
-              <div className="min-w-0 flex-1">
-                <a
-                  href={`/mythoughts/${p.slug}`}
-                  className="font-medium hover:underline"
-                >
-                  {p.title}
-                </a>
-                <p className="text-xs text-neutral-500 mt-0.5">
-                  {p.date} · /{p.slug}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onDelete(p.slug)}
-                disabled={busy}
-                className="text-sm text-red-600 disabled:opacity-50"
-              >
-                delete
-              </button>
-            </li>
+            <PostRow
+              key={p.slug}
+              post={p}
+              refresh={refresh}
+              onDelete={onDelete}
+              disabled={busy}
+            />
           ))}
         </ul>
       )}
@@ -495,5 +482,139 @@ function QuadrantsTab({
         {status && <span className="text-sm text-neutral-500">{status}</span>}
       </div>
     </div>
+  );
+}
+
+function PostRow({
+  post,
+  refresh,
+  onDelete,
+  disabled,
+}: {
+  post: Post;
+  refresh: () => Promise<void>;
+  onDelete: (slug: string) => Promise<void>;
+  disabled: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(post.title);
+  const [date, setDate] = useState(post.date);
+  const [slug, setSlug] = useState(post.slug);
+  const [body, setBody] = useState(post.body);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!editing) {
+      setTitle(post.title);
+      setDate(post.date);
+      setSlug(post.slug);
+      setBody(post.body);
+      setStatus(null);
+    }
+  }, [editing, post]);
+
+  async function onSave() {
+    setBusy(true);
+    setStatus(null);
+    try {
+      await updatePost(post.slug, {
+        title,
+        date,
+        body,
+        slug: slug || undefined,
+      });
+      await refresh();
+      setEditing(false);
+    } catch (err) {
+      setStatus(`error: ${err instanceof Error ? err.message : "failed"}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <li className="flex items-center justify-between gap-4 py-3">
+        <div className="min-w-0 flex-1">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="font-medium hover:underline text-left"
+          >
+            {post.title}
+          </button>
+          <p className="text-xs text-neutral-500 mt-0.5">
+            {post.date} · /{post.slug}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          disabled={disabled}
+          className="text-sm text-neutral-500 hover:underline disabled:opacity-50"
+        >
+          edit
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(post.slug)}
+          disabled={disabled}
+          className="text-sm text-red-600 disabled:opacity-50"
+        >
+          delete
+        </button>
+      </li>
+    );
+  }
+
+  return (
+    <li className="py-4 space-y-3">
+      <input
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="title"
+        className={inputClass}
+      />
+      <div className="flex gap-3">
+        <input
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          type="date"
+          className={inputClass}
+        />
+        <input
+          value={slug}
+          onChange={(e) => setSlug(e.target.value)}
+          placeholder="slug"
+          className={`${inputClass} font-mono`}
+        />
+      </div>
+      <textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        rows={14}
+        className={`${inputClass} font-mono`}
+      />
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={busy || !title.trim() || !body.trim()}
+          className="px-4 py-2 bg-black text-white text-sm disabled:opacity-50 dark:bg-white dark:text-black"
+        >
+          {busy ? "saving..." : "save"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          disabled={busy}
+          className="text-sm text-neutral-500 hover:underline disabled:opacity-50"
+        >
+          cancel
+        </button>
+        {status && <span className="text-sm text-red-600">{status}</span>}
+      </div>
+    </li>
   );
 }

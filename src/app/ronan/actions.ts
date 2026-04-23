@@ -125,6 +125,51 @@ export async function createPost(input: {
   return post;
 }
 
+export async function updatePost(
+  originalSlug: string,
+  input: {
+    title: string;
+    date: string;
+    body: string;
+    slug?: string;
+  },
+): Promise<Post> {
+  await requireAuth();
+  const posts = await getPosts();
+  const idx = posts.findIndex((p) => p.slug === originalSlug);
+  if (idx === -1) throw new Error("post not found");
+  const current = posts[idx];
+
+  const title = input.title.trim();
+  if (!title) throw new Error("title cannot be empty");
+  const body = input.body;
+  if (!body) throw new Error("body cannot be empty");
+  const date = input.date || current.date;
+
+  const requested = input.slug ? slugify(input.slug) : current.slug;
+  let finalSlug = requested;
+  let n = 1;
+  while (posts.some((p, i) => i !== idx && p.slug === finalSlug)) {
+    finalSlug = `${requested}-${n++}`;
+  }
+
+  const history = new Set(current.pastSlugs ?? []);
+  if (current.slug !== finalSlug) history.add(current.slug);
+  history.delete(finalSlug);
+
+  const updated: Post = {
+    slug: finalSlug,
+    title,
+    date,
+    body,
+    pastSlugs: Array.from(history),
+  };
+  posts[idx] = updated;
+  await savePosts(posts);
+  revalidatePath("/", "layout");
+  return updated;
+}
+
 export async function saveSection(
   key: keyof Sections,
   body: string,
