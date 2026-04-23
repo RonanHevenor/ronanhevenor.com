@@ -13,6 +13,7 @@ import {
   saveSections,
   type Photo,
   type Post,
+  type Quadrant,
   type Sections,
 } from "@/lib/data";
 import { readImageDims } from "@/lib/image-dims";
@@ -134,6 +135,49 @@ export async function saveSection(
   }
   const current = await getSections();
   await saveSections({ ...current, [key]: body });
+  revalidatePath("/", "layout");
+}
+
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const RESERVED_SLUGS = new Set([
+  "ronan",
+  "api",
+  "_next",
+  "gallery",
+  "favicon.ico",
+  "robots.txt",
+  "sitemap.xml",
+]);
+
+export async function saveQuadrants(
+  inputs: { title: string; slug: string }[],
+): Promise<void> {
+  await requireAuth();
+  if (!Array.isArray(inputs) || inputs.length !== 4) {
+    throw new Error("exactly 4 quadrants required");
+  }
+  const normalized: Quadrant[] = inputs.map((q) => ({
+    title: String(q?.title ?? "").trim(),
+    slug: String(q?.slug ?? "")
+      .trim()
+      .toLowerCase(),
+  }));
+  for (const q of normalized) {
+    if (!q.title) throw new Error("title cannot be empty");
+    if (!q.slug) throw new Error("slug cannot be empty");
+    if (!SLUG_RE.test(q.slug)) {
+      throw new Error(
+        `invalid slug "${q.slug}" — use lowercase letters, numbers, hyphens`,
+      );
+    }
+    if (RESERVED_SLUGS.has(q.slug)) {
+      throw new Error(`reserved slug "${q.slug}"`);
+    }
+  }
+  const slugSet = new Set(normalized.map((q) => q.slug));
+  if (slugSet.size !== 4) throw new Error("slugs must be unique");
+  const current = await getSections();
+  await saveSections({ ...current, quadrants: normalized });
   revalidatePath("/", "layout");
 }
 

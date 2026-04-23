@@ -7,7 +7,12 @@ import { useEffect, useRef, useState } from "react";
 import type { Photo } from "@/lib/data";
 
 type SurfacePost = { slug: string; title: string; date: string; html: string };
-type SurfaceSections = { whatido: string; whoiam: string };
+type SurfaceQuadrant = { title: string; slug: string };
+type SurfaceSections = {
+  whatido: string;
+  whoiam: string;
+  quadrants: SurfaceQuadrant[];
+};
 
 const SLIDE_INTERVAL_MS = 5000;
 const SLIDE_FADE_MS = 700;
@@ -122,79 +127,67 @@ type Quadrant = {
 // Rendered HTML is produced by our sanitizing markdown pipeline
 // (src/lib/markdown.ts drops raw HTML tokens), so `dangerouslySetInnerHTML`
 // here receives only markdown-generated output, never admin-entered HTML.
+const QUADRANT_STYLES: { bg: string; fg: string }[] = [
+  { bg: "bg-neutral-900", fg: "text-neutral-100" },
+  { bg: "bg-neutral-200", fg: "text-neutral-900" },
+  { bg: "bg-neutral-700", fg: "text-neutral-100" },
+  { bg: "bg-black", fg: "text-neutral-100" },
+];
+
 function buildQuadrants(
   posts: SurfacePost[],
   sections: SurfaceSections,
 ): Quadrant[] {
-  return [
-    {
-      path: "/whatisee",
-      bg: "bg-neutral-900",
-      fg: "text-neutral-100",
-      title: "What I see",
-      body: null,
-    },
-    {
-      path: "/whatido",
-      bg: "bg-neutral-200",
-      fg: "text-neutral-900",
-      title: "What I do",
-      body: (
-        <div
-          className="markdown max-w-2xl px-6 pb-6 text-lg leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: sections.whatido }}
-        />
-      ),
-    },
-    {
-      path: "/whoiam",
-      bg: "bg-neutral-700",
-      fg: "text-neutral-100",
-      title: "Who I am",
-      body: (
-        <div
-          className="markdown max-w-2xl px-6 pb-6 text-lg leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: sections.whoiam }}
-        />
-      ),
-    },
-    {
-      path: "/mythoughts",
-      bg: "bg-black",
-      fg: "text-neutral-100",
-      title: "My thoughts",
-      body:
-        posts.length === 0 ? (
-          <p className="px-6 pb-6 text-lg text-neutral-400">No posts yet.</p>
-        ) : (
-          <ul className="space-y-6 px-6 pb-6 text-lg">
-            {posts.map((p) => (
-              <li key={p.slug}>
-                <Link
-                  href={`/mythoughts/${p.slug}`}
-                  className="underline underline-offset-4 hover:text-blue-500"
-                >
-                  {p.title}
-                </Link>
-                <span className="ml-3 text-sm text-neutral-500">{p.date}</span>
-              </li>
-            ))}
-          </ul>
-        ),
-    },
+  const q = sections.quadrants;
+  const blogSlug = q[3].slug;
+  const bodies: React.ReactNode[] = [
+    null,
+    (
+      <div
+        className="markdown max-w-2xl px-6 pb-6 text-lg leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: sections.whatido }}
+      />
+    ),
+    (
+      <div
+        className="markdown max-w-2xl px-6 pb-6 text-lg leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: sections.whoiam }}
+      />
+    ),
+    posts.length === 0 ? (
+      <p className="px-6 pb-6 text-lg text-neutral-400">No posts yet.</p>
+    ) : (
+      <ul className="space-y-6 px-6 pb-6 text-lg">
+        {posts.map((p) => (
+          <li key={p.slug}>
+            <Link
+              href={`/${blogSlug}/${p.slug}`}
+              className="underline underline-offset-4 hover:text-blue-500"
+            >
+              {p.title}
+            </Link>
+            <span className="ml-3 text-sm text-neutral-500">{p.date}</span>
+          </li>
+        ))}
+      </ul>
+    ),
   ];
+  return q.map((quad, i) => ({
+    path: `/${quad.slug}`,
+    bg: QUADRANT_STYLES[i].bg,
+    fg: QUADRANT_STYLES[i].fg,
+    title: quad.title,
+    body: bodies[i],
+  }));
 }
 
-const PATH_TO_INDEX: Record<string, number> = {
-  "/whatisee": 0,
-  "/whatido": 1,
-  "/whoiam": 2,
-  "/mythoughts": 3,
-};
-
-function pathToIndex(pathname: string): number | null {
-  for (const [path, idx] of Object.entries(PATH_TO_INDEX)) {
-    if (pathname === path || pathname.startsWith(path + "/")) return idx;
+function pathToIndex(
+  pathname: string,
+  quadrants: SurfaceQuadrant[],
+): number | null {
+  for (let i = 0; i < quadrants.length; i++) {
+    const path = `/${quadrants[i].slug}`;
+    if (pathname === path || pathname.startsWith(path + "/")) return i;
   }
   return null;
 }
@@ -328,7 +321,8 @@ export default function Surface({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const expanded = pathToIndex(pathname);
+  const expanded = pathToIndex(pathname, sections.quadrants);
+  const blogSlug = sections.quadrants[3].slug;
   const [hovered, setHovered] = useState<number | null>(null);
   const [suppressHover, setSuppressHover] = useState(false);
   const prevExpandedRef = useRef<number | null>(expanded);
@@ -371,8 +365,8 @@ export default function Surface({
   useEffect(() => {
     for (const q of quadrants) router.prefetch(q.path);
     router.prefetch("/");
-    for (const p of posts) router.prefetch(`/mythoughts/${p.slug}`);
-  }, [router, posts, quadrants]);
+    for (const p of posts) router.prefetch(`/${blogSlug}/${p.slug}`);
+  }, [router, posts, quadrants, blogSlug]);
 
   useEffect(() => {
     if (expanded !== null) setHovered(null);
@@ -397,8 +391,8 @@ export default function Surface({
 
   if (pathname.startsWith("/ronan")) return null;
 
-  const postSlug = pathname.startsWith("/mythoughts/")
-    ? pathname.slice("/mythoughts/".length)
+  const postSlug = pathname.startsWith(`/${blogSlug}/`)
+    ? pathname.slice(blogSlug.length + 2)
     : null;
   const currentPost = postSlug
     ? posts.find((p) => p.slug === postSlug) ?? null

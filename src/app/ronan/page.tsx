@@ -1,25 +1,39 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Photo, Post, Sections } from "@/lib/data";
+import type { Photo, Post, Quadrant, Sections } from "@/lib/data";
 import {
   createPost,
   deletePhoto,
   deletePost,
   listContent,
   logout,
+  saveQuadrants,
   saveSection,
   uploadPhotos,
 } from "./actions";
+
+const INITIAL_QUADRANTS: Quadrant[] = [
+  { title: "", slug: "" },
+  { title: "", slug: "" },
+  { title: "", slug: "" },
+  { title: "", slug: "" },
+];
 
 const inputClass =
   "w-full border border-neutral-300 dark:border-neutral-700 bg-transparent px-3 py-2 text-sm";
 
 export default function RonanAdmin() {
-  const [tab, setTab] = useState<"photos" | "posts" | "sections">("photos");
+  const [tab, setTab] = useState<
+    "photos" | "posts" | "sections" | "quadrants"
+  >("photos");
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [sections, setSections] = useState<Sections>({ whatido: "", whoiam: "" });
+  const [sections, setSections] = useState<Sections>({
+    whatido: "",
+    whoiam: "",
+    quadrants: INITIAL_QUADRANTS,
+  });
   const [loaded, setLoaded] = useState(false);
 
   async function refresh() {
@@ -38,6 +52,7 @@ export default function RonanAdmin() {
     { k: "photos" as const, count: photos.length },
     { k: "posts" as const, count: posts.length },
     { k: "sections" as const, count: null },
+    { k: "quadrants" as const, count: null },
   ];
 
   return (
@@ -80,8 +95,13 @@ export default function RonanAdmin() {
           <PhotosTab photos={photos} refresh={refresh} />
         ) : tab === "posts" ? (
           <PostsTab posts={posts} refresh={refresh} />
-        ) : (
+        ) : tab === "sections" ? (
           <SectionsTab sections={sections} refresh={refresh} />
+        ) : (
+          <QuadrantsTab
+            quadrants={sections.quadrants}
+            refresh={refresh}
+          />
         )}
       </div>
     </div>
@@ -378,6 +398,96 @@ function SectionEditor({
           type="button"
           onClick={onSave}
           disabled={busy || value === initial}
+          className="px-4 py-2 bg-black text-white text-sm disabled:opacity-50 dark:bg-white dark:text-black"
+        >
+          {busy ? "saving..." : "save"}
+        </button>
+        {status && <span className="text-sm text-neutral-500">{status}</span>}
+      </div>
+    </div>
+  );
+}
+
+function QuadrantsTab({
+  quadrants,
+  refresh,
+}: {
+  quadrants: Quadrant[];
+  refresh: () => Promise<void>;
+}) {
+  const [draft, setDraft] = useState<Quadrant[]>(quadrants);
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraft(quadrants);
+  }, [quadrants]);
+
+  const dirty = draft.some(
+    (q, i) => q.title !== quadrants[i].title || q.slug !== quadrants[i].slug,
+  );
+
+  function update(i: number, field: "title" | "slug", value: string) {
+    setDraft((prev) =>
+      prev.map((q, idx) => (idx === i ? { ...q, [field]: value } : q)),
+    );
+  }
+
+  async function onSave() {
+    setBusy(true);
+    setStatus(null);
+    try {
+      await saveQuadrants(draft);
+      setStatus("saved");
+      await refresh();
+    } catch (err) {
+      setStatus(`error: ${err instanceof Error ? err.message : "failed"}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const labels = ["slideshow", "markdown", "markdown", "blog posts"] as const;
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-neutral-500">
+        Edit the title (header) and URL slug of each quadrant. Body type is
+        fixed by position. Changing quadrant 4's slug breaks existing blog
+        post URLs.
+      </p>
+      <div className="space-y-4">
+        {draft.map((q, i) => (
+          <div
+            key={i}
+            className="grid grid-cols-[auto_1fr_1fr] gap-3 items-center"
+          >
+            <span className="text-xs text-neutral-500 w-24">
+              {i + 1}. {labels[i]}
+            </span>
+            <input
+              value={q.title}
+              onChange={(e) => update(i, "title", e.target.value)}
+              placeholder="title"
+              className={inputClass}
+            />
+            <div className="flex items-center gap-2">
+              <span className="text-neutral-500 text-sm">/</span>
+              <input
+                value={q.slug}
+                onChange={(e) => update(i, "slug", e.target.value)}
+                placeholder="slug"
+                className={`${inputClass} font-mono`}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={busy || !dirty}
           className="px-4 py-2 bg-black text-white text-sm disabled:opacity-50 dark:bg-white dark:text-black"
         >
           {busy ? "saving..." : "save"}

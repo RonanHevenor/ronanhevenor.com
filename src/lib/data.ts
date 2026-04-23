@@ -13,10 +13,22 @@ export type Post = {
   date: string;
   body: string; // markdown
 };
+export type Quadrant = {
+  title: string;
+  slug: string;
+};
 export type Sections = {
   whatido: string; // markdown
   whoiam: string; // markdown
+  quadrants: Quadrant[]; // length 4
 };
+
+export const DEFAULT_QUADRANTS: Quadrant[] = [
+  { title: "What I see", slug: "whatisee" },
+  { title: "What I do", slug: "whatido" },
+  { title: "Who I am", slug: "whoiam" },
+  { title: "My thoughts", slug: "mythoughts" },
+];
 
 async function readJSON<T>(file: string, fallback: T): Promise<T> {
   try {
@@ -36,8 +48,22 @@ export const savePhotos = (photos: Photo[]) => writeJSON(PHOTOS_FILE, photos);
 export const getPosts = (): Promise<Post[]> => readJSON(POSTS_FILE, []);
 export const savePosts = (posts: Post[]) => writeJSON(POSTS_FILE, posts);
 
-const DEFAULT_SECTIONS: Sections = { whatido: "", whoiam: "" };
-export const getSections = (): Promise<Sections> =>
-  readJSON(SECTIONS_FILE, DEFAULT_SECTIONS);
+export const getSections = async (): Promise<Sections> => {
+  const raw = await readJSON<Partial<Sections>>(SECTIONS_FILE, {});
+  const rawQuadrants = Array.isArray(raw.quadrants) ? raw.quadrants : [];
+  const quadrants: Quadrant[] = DEFAULT_QUADRANTS.map((d, i) => {
+    const r = rawQuadrants[i];
+    return {
+      title:
+        typeof r?.title === "string" && r.title.trim() ? r.title : d.title,
+      slug: typeof r?.slug === "string" && r.slug.trim() ? r.slug : d.slug,
+    };
+  });
+  return {
+    whatido: typeof raw.whatido === "string" ? raw.whatido : "",
+    whoiam: typeof raw.whoiam === "string" ? raw.whoiam : "",
+    quadrants,
+  };
+};
 export const saveSections = (sections: Sections) =>
   writeJSON(SECTIONS_FILE, sections);

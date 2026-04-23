@@ -40,6 +40,7 @@ export default async function RootLayout({
   const renderedSections = {
     whatido: renderMarkdown(sections.whatido),
     whoiam: renderMarkdown(sections.whoiam),
+    quadrants: sections.quadrants,
   };
   return (
     <html
