@@ -330,6 +330,7 @@ export default function Surface({
   const [hovered, setHovered] = useState<number | null>(null);
   const [suppressHover, setSuppressHover] = useState(false);
   const prevExpandedRef = useRef<number | null>(expanded);
+  const cursorSectionRef = useRef<number | null>(null);
   const [activePhoto, setActivePhoto] = useState<Photo>(
     photos[0] ?? FALLBACK_PHOTO,
   );
@@ -381,7 +382,12 @@ export default function Surface({
     prevExpandedRef.current = expanded;
     if (!justCollapsed) return;
     setSuppressHover(true);
-    const t = setTimeout(() => setSuppressHover(false), 600);
+    const t = setTimeout(() => {
+      setSuppressHover(false);
+      if (cursorSectionRef.current !== null) {
+        setHovered(cursorSectionRef.current);
+      }
+    }, 600);
     return () => clearTimeout(t);
   }, [expanded]);
 
@@ -413,11 +419,13 @@ export default function Surface({
     router.push(quadrants[i].path);
   };
   const handleEnter = (i: number) => {
+    cursorSectionRef.current = i;
     if (expanded !== null) return;
     if (suppressHover) return;
     setHovered(i);
   };
   const handleLeave = (i: number) => {
+    if (cursorSectionRef.current === i) cursorSectionRef.current = null;
     if (expanded !== null) return;
     setHovered((h) => (h === i ? null : h));
   };
