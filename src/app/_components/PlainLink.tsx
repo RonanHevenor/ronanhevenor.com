@@ -14,14 +14,14 @@ export default function PlainLink() {
     // eslint-disable-next-line @next/next/no-html-link-for-pages
     <a
       href="/html"
-      className="fixed bottom-3 left-1/2 z-50 inline-flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-black/75 py-1.5 pl-3 pr-4 text-sm text-white underline-offset-4 backdrop-blur-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+      className="fixed bottom-3 left-1/2 z-50 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-black/75 py-1 pl-1 pr-3 text-sm text-white underline-offset-4 backdrop-blur-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
     >
       {/* the universal accessibility symbol: a figure, arms out, in a circle (decorative;
           the link's text says what it does) */}
       <svg
         aria-hidden="true"
         viewBox="0 0 24 24"
-        className="h-[1.15em] w-[1.15em] shrink-0"
+        className="h-[1.85em] w-[1.85em] shrink-0"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.8"
