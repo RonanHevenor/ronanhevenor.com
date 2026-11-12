@@ -1,0 +1,4 @@
+camera:
+  resolution: (1920, 1080)
+  background_color: "#000000"
+  fps: 60

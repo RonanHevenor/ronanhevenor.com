@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
+import Intro, { INTRO_GATE } from "./_components/Intro";
 import PlainLink from "./_components/PlainLink";
 import Surface from "./_components/Surface";
 import { getPhotos, getPosts, getProjects, getSections } from "@/lib/data";
@@ -123,8 +124,14 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      // the intro's gate script (below) may add "no-intro" before React hydrates
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
     >
+      <head>
+        {/* before first paint: skip the intro on a repeat visit or with reduced motion */}
+        <script dangerouslySetInnerHTML={{ __html: INTRO_GATE }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <script
           type="application/ld+json"
@@ -135,6 +142,7 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }}
         />
         <PlainLink />
+        <Intro />
         <Surface
           photos={photos}
           posts={renderedPosts}

@@ -3,7 +3,8 @@
 import { usePathname } from "next/navigation";
 
 // The way out to the plain HTML version (/html). Fixed to the bottom of the screen above the
-// quadrants, so it never moves however they grow or shrink. It's first in the page, so it's
+// quadrants (and above the intro, which fades it in), so it never moves however they grow or
+// shrink. It's first in the page, so it's
 // also the first thing a keyboard or screen-reader user reaches.
 export default function PlainLink() {
   const pathname = usePathname();
@@ -14,7 +15,7 @@ export default function PlainLink() {
     // eslint-disable-next-line @next/next/no-html-link-for-pages
     <a
       href="/html"
-      className="fixed bottom-3 left-1/2 z-50 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-black/75 py-1 pl-1 pr-3 text-sm text-white underline-offset-4 backdrop-blur-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+      className="intro-link fixed bottom-3 left-1/2 z-[70] inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-black/75 py-1 pl-1 pr-3 text-sm text-white underline-offset-4 backdrop-blur-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
     >
       {/* the universal accessibility symbol: a figure, arms out, in a circle (decorative;
           the link's text says what it does) */}
