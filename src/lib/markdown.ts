@@ -10,8 +10,31 @@ import { markedSmartypants } from "marked-smartypants";
 // width (on wide screens; on phones every picture spans the screen).
 const SIZED_IMAGE = /^!\[([^\]]*)\]\(\s*<?([^\s)>]+)>?(?:\s+"([^"]*)")?\s*\)\{\s*(\d{1,3})\s*%?\s*\}/;
 
+// A line of its own like \space{2}{1} sets the gap there: 2 lines of text on wide screens, 1 on
+// phones. Fractions work, and a negative number pulls things closer.
+const NUM = String.raw`\s*(-?\d{1,2}(?:\.\d+)?)\s*`;
+const SPACE = new RegExp(String.raw`^ {0,3}\\space\{${NUM}\}\{${NUM}\}[ \t]*(?:\n+|$)`);
+const lines = (n: number) => Math.max(-20, Math.min(40, n));
+
 const md = new Marked(markedSmartypants(), {
   extensions: [
+    {
+      name: "lineSpace",
+      level: "block",
+      start: (src: string) => {
+        const m = /(^|\n) {0,3}\\space\{/.exec(src);
+        return m ? m.index + m[1].length : undefined;
+      },
+      tokenizer(src: string) {
+        const m = SPACE.exec(src);
+        if (!m) return undefined;
+        return { type: "lineSpace", raw: m[0], desktop: lines(Number(m[1])), mobile: lines(Number(m[2])) };
+      },
+      renderer(token) {
+        const { desktop, mobile } = token as unknown as { desktop: number; mobile: number };
+        return `<div class="md-space" style="--space:${desktop};--space-phone:${mobile}" aria-hidden="true"></div>\n`;
+      },
+    },
     {
       name: "sizedImage",
       level: "inline",

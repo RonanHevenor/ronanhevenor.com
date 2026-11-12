@@ -59,6 +59,21 @@ body {
 .markdown > * + * {
   margin-top: 1em;
 }
+/* \space{desktop}{phone}: the gap at that point, in lines of text */
+.markdown .md-space {
+  height: 0;
+  margin-top: calc(var(--space) * 1.65em);
+  margin-top: calc(var(--space) * 1lh);
+}
+.markdown .md-space + * {
+  margin-top: 0;
+}
+@media (max-width: 639px) {
+  .markdown .md-space {
+    margin-top: calc(var(--space-phone) * 1.65em);
+    margin-top: calc(var(--space-phone) * 1lh);
+  }
+}
 .markdown h1,
 .markdown h2,
 .markdown h3 {
