@@ -171,7 +171,10 @@ function buildQuadrants(
     null,
     (
       <div
-        className="markdown stable-col px-6 pb-6 text-xl leading-relaxed"
+        // wraps to the width this quadrant has when hovered (BIG of the screen, less padding), so
+        // it's a little cut off at rest, fully shown on hover, and never rewraps mid-animation
+        className="markdown px-6 pb-6 text-xl leading-relaxed"
+        style={{ width: `min(calc(${BIG.replace("%", "vw")} - 3rem), 42rem)` }}
         dangerouslySetInnerHTML={{ __html: sections.whatido }}
       />
     ),

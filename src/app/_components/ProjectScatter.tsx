@@ -13,9 +13,10 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 // and slide there with the quadrant's own timing, so they jockey for position
 // as it changes shape.
 //
-// One of them is the odd one out, picked at random once per page load along
-// with which way it goes: up while the other two go down, or the reverse (in a
-// stack: left versus right).
+// At rest they lie like prints tossed on a table: each a few degrees off true
+// and nudged off its spot. As the quadrant opens they straighten, spread into
+// the extra room, moving in step with the quadrant itself (same duration and
+// curve, no delay). The tilts and nudges are random, picked once per page load.
 
 export type ScatterPhase = "idle" | "hover" | "shrunk" | "expanded";
 
@@ -33,6 +34,7 @@ type Project = {
   cap: number;
   radius?: number; // corner radius as a fraction of the width, so it scales with the thumbnail
   labelScale?: number; // label size relative to the others
+  inset?: number; // transparent margin below the visible image, as a fraction of its width
   label: Label;
 };
 
@@ -41,19 +43,22 @@ const PROJECTS: Project[] = [
     title: "Typeset",
     src: "/projects/typeset.png", w: 512, h: 512, base: 7, cap: 11.5,
     // "Typeset" in SF Pro Black filled with the app icon's rainbow
+    labelScale: 1.6,
+    inset: 49 / 512, // the icon's tile stops short of the image's edges (standard macOS icon padding)
     label: { kind: "image", src: "/projects/typeset-wordmark.png", w: 1548, h: 360 },
   },
   {
     title: "poly.rpi.edu",
     src: "/projects/poly-site.png", w: 2880, h: 1920, base: 13.5, cap: 22, radius: 0.055,
     // the site's wordmark in the paper's red, #D6001C; a long, light wordmark, so set larger
-    labelScale: 1.5,
+    labelScale: 2,
     label: { kind: "image", src: "/projects/poly-rpi-edu.svg", w: 1121, h: 200 },
   },
   {
     title: "Sentinel",
     src: "/projects/sentinel-leds.jpg", w: 640, h: 480, base: 9.5, cap: 15.5, radius: 0.055,
     // the Sentinel dashboard's header: light weight, capitals, letter-spacing 4px at 32px
+    labelScale: 1.9,
     label: {
       kind: "text",
       text: "SENTINEL",
@@ -77,21 +82,39 @@ const LABEL: Record<ScatterPhase, [number, number, number]> = {
   hover: [9, 1.1, 18],
   expanded: [15, 1.7, 28],
 };
-// How far the odd one out and the pair may split apart, as a fraction of the quadrant's height
-// (or width, in a stack); limited further by the room actually left over.
-const SPLIT: Record<ScatterPhase, number> = { idle: 0.03, shrunk: 0.02, hover: 0.07, expanded: 0.15 };
+// How tilted they lie (times each one's random tilt of up to ±MAX_TILT degrees): most askew when
+// squeezed, nearly straight when open.
+const MAX_TILT = 4;
+const TILT: Record<ScatterPhase, number> = { idle: 1, shrunk: 1.2, hover: 0.55, expanded: 0.12 };
+// How far each may wander off its spot, as a share of the room left over around it.
+const NUDGE: Record<ScatterPhase, number> = { idle: 0.5, shrunk: 0.35, hover: 0.7, expanded: 0.9 };
 
-type Pattern = { odd: number; oddGoesUp: boolean };
+type Pattern = {
+  lone: number; // in a pyramid, the one on a row of its own
+  loneOnTop: boolean;
+  nudge: { x: number; y: number }[]; // each in -1..1
+  tilt: number[]; // each in -1..1
+};
 
 // Random, but stable for the life of the page, and a fixed value during server
 // render so hydration matches (React swaps in the client value right after).
-const SERVER_PATTERN: Pattern = { odd: 1, oddGoesUp: true };
+const SERVER_PATTERN: Pattern = {
+  lone: 1,
+  loneOnTop: true,
+  nudge: [{ x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }],
+  tilt: [0, 0, 0],
+};
 let clientPattern: Pattern | null = null;
 function getPattern(): Pattern {
   if (!clientPattern) {
+    const r = () => Math.random() * 2 - 1;
+    // tilts alternate in sign so they never all lean the same way
+    const lean = Math.random() < 0.5 ? 1 : -1;
     clientPattern = {
-      odd: Math.floor(Math.random() * PROJECTS.length),
-      oddGoesUp: Math.random() < 0.5,
+      lone: Math.floor(Math.random() * PROJECTS.length),
+      loneOnTop: Math.random() < 0.5,
+      nudge: PROJECTS.map(() => ({ x: r(), y: r() })),
+      tilt: PROJECTS.map((_, i) => (i % 2 ? -lean : lean) * (0.45 + 0.55 * Math.random())),
     };
   }
   return clientPattern;
@@ -104,7 +127,31 @@ function percent(s: string): number {
   return m ? 100 - parseFloat(m[1]) : parseFloat(s);
 }
 
-type Placed = { cx: number; cy: number; w: number }; // centre and width, px within the quadrant
+// Tilt each thumbnail and nudge it off its spot by its random amount, within the room it has
+// (roomX/roomY: how far it can go each way without reaching a neighbour or the edge).
+function nudgeAll(
+  placed: Placed[],
+  pattern: Pattern,
+  phase: ScatterPhase,
+  roomX: (i: number) => number,
+  roomY: (i: number) => number,
+) {
+  const k = NUDGE[phase];
+  placed.forEach((p, i) => {
+    p.cx += pattern.nudge[i].x * Math.max(0, roomX(i)) * k;
+    p.cy += pattern.nudge[i].y * Math.max(0, roomY(i)) * k;
+    p.tilt = pattern.tilt[i] * MAX_TILT * TILT[phase];
+  });
+}
+
+// Space between an image and its label; pulled up by any transparent margin under the image,
+// so every label sits the same distance from what you actually see.
+function labelGap(p: Project, w: number, l: number): number {
+  return p.inset ? 0.4 * l - p.inset * w : 0.6 * l;
+}
+
+// centre and width (px within the quadrant), tilt (degrees)
+type Placed = { cx: number; cy: number; w: number; tilt: number };
 type Arrangement = "row" | "pyramid" | "stack";
 
 function layout(
@@ -132,17 +179,24 @@ function layout(
   const want = PROJECTS.map((p) =>
     Math.min((p.base * s * VW_BOOST[phase] * screenW) / 100, (p.cap * s * screenH) / 100),
   );
+  const labelWidth = (i: number) => {
+    const p = PROJECTS[i];
+    const l = label * (p.labelScale ?? 1);
+    return p.label.kind === "image" ? (l * p.label.w) / p.label.h : l * 0.78 * p.label.text.length;
+  };
+  // how much room an item takes across: its image or its label, whichever is wider
+  const spanOf = (i: number, w: number) => Math.max(w, labelWidth(i));
   const heightOf = (i: number, w: number) => {
     const p = PROJECTS[i];
     const l = label * (p.labelScale ?? 1);
-    return (w * p.h) / p.w + 0.6 * l + l; // image, gap, label
+    return (w * p.h) / p.w + labelGap(p, w, l) + l; // image, gap, label
   };
-  const odd = pattern.odd;
+  const odd = pattern.lone;
   const pair = [0, 1, 2].filter((i) => i !== odd);
 
   const bounds = (a: Arrangement, f: number) => {
-    const w = want.map((x) => x * f);
-    const h = w.map((x, i) => heightOf(i, x));
+    const w = want.map((x, i) => spanOf(i, x * f));
+    const h = want.map((x, i) => heightOf(i, x * f));
     if (a === "row") return { w: w[0] + w[1] + w[2] + 2 * gap, h: Math.max(...h) };
     if (a === "stack") return { w: Math.max(...w), h: h[0] + h[1] + h[2] + 2 * gap };
     return {
@@ -152,7 +206,7 @@ function layout(
   };
   // largest scale at which an arrangement fills (most of) the space under the text; the
   // preferred widths only set the proportions and a sensible ceiling
-  const FILL = 0.9;
+  const FILL = 0.84;
   const MAX_F = 2.6;
   const fit = (a: Arrangement) => {
     let lo = 0.2, hi = MAX_F;
@@ -171,47 +225,52 @@ function layout(
   const pick = order.find((_, k) => scores[k] >= best * 0.97)!;
   const f = scores[order.indexOf(pick)];
 
-  const w = want.map((x) => x * f);
-  const h = w.map((x, i) => heightOf(i, x));
+  const img = want.map((x) => x * f); // image widths
+  const w = img.map((x, i) => spanOf(i, x)); // room each takes across
+  const h = img.map((x, i) => heightOf(i, x));
   const b = bounds(pick, f);
   const slackX = Math.max(0, region.width - b.w);
   const slackY = Math.max(0, region.height - b.h);
   const midX = region.left + region.width / 2;
   const midY = region.top + region.height / 2;
-  const dir = (i: number) => ((i === odd) === pattern.oddGoesUp ? -1 : 1); // -1: up (or left)
   const placed: Placed[] = [];
 
   if (pick === "row") {
-    // spread across half the spare width, split up/down within the spare height
+    // spread across half the spare width
     const g = gap + slackX / 4;
     let x = midX - (b.w + slackX / 2) / 2;
-    const split = Math.min(slackY / 2, SPLIT[phase] * H);
     for (let i = 0; i < 3; i++) {
-      placed[i] = { cx: x + w[i] / 2, cy: midY + dir(i) * split, w: w[i] };
+      placed[i] = { cx: x + w[i] / 2, cy: midY, w: img[i], tilt: 0 };
       x += w[i] + g;
     }
+    nudgeAll(placed, pattern, phase, () => (g - gap) / 2 + gap * 0.25, (i) => (region.height - h[i]) / 2);
   } else if (pick === "stack") {
-    // spread down half the spare height, zig-zag left/right within the spare width
+    // spread down half the spare height
     const g = gap + slackY / 4;
     let y = midY - (b.h + slackY / 2) / 2;
-    const zig = Math.min(slackX / 2, SPLIT[phase] * W * 1.5);
     for (let i = 0; i < 3; i++) {
-      placed[i] = { cx: midX + dir(i) * zig, cy: y + h[i] / 2, w: w[i] };
+      placed[i] = { cx: midX, cy: y + h[i] / 2, w: img[i], tilt: 0 };
       y += h[i] + g;
     }
+    nudgeAll(placed, pattern, phase, (i) => (region.width - w[i]) / 2, () => (g - gap) / 2 + gap * 0.25);
   } else {
     // the odd one alone on one row (top if it goes up), the pair side by side on the other
     const rowGap = gap + slackY / 2;
     const pairH = Math.max(h[pair[0]], h[pair[1]]);
     const top = midY - (b.h + slackY / 2) / 2;
-    const oddFirst = pattern.oddGoesUp;
+    const oddFirst = pattern.loneOnTop;
     const oddCy = oddFirst ? top + h[odd] / 2 : top + pairH + rowGap + h[odd] / 2;
     const pairCy = oddFirst ? top + h[odd] + rowGap + pairH / 2 : top + pairH / 2;
     const pg = gap + slackX / 2;
     const pairW = w[pair[0]] + w[pair[1]] + pg;
-    placed[odd] = { cx: midX, cy: oddCy, w: w[odd] };
-    placed[pair[0]] = { cx: midX - pairW / 2 + w[pair[0]] / 2, cy: pairCy, w: w[pair[0]] };
-    placed[pair[1]] = { cx: midX + pairW / 2 - w[pair[1]] / 2, cy: pairCy, w: w[pair[1]] };
+    placed[odd] = { cx: midX, cy: oddCy, w: img[odd], tilt: 0 };
+    placed[pair[0]] = { cx: midX - pairW / 2 + w[pair[0]] / 2, cy: pairCy, w: img[pair[0]], tilt: 0 };
+    placed[pair[1]] = { cx: midX + pairW / 2 - w[pair[1]] / 2, cy: pairCy, w: img[pair[1]], tilt: 0 };
+    nudgeAll(
+      placed, pattern, phase,
+      (i) => (i === odd ? (region.width - w[i]) / 2 : (pg - gap) / 2 + gap * 0.25),
+      () => (rowGap - gap) / 2 + gap * 0.25,
+    );
   }
   return { placed, label };
 }
@@ -266,7 +325,7 @@ export default function ProjectScatter({
     const H = hidden ? m.screenH / 2 : (percent(box.height) / 100) * m.screenH;
     result = layout(W, H, m.screenW, m.screenH, m.textBottom, hidden ? "idle" : phase, pattern);
   }
-  const move = `left ${timing}, top ${timing}, width ${timing}`;
+  const move = `left ${timing}, top ${timing}, width ${timing}, transform ${timing}`;
 
   return (
     <div
@@ -278,7 +337,7 @@ export default function ProjectScatter({
     >
       {result &&
         PROJECTS.map((p, i) => {
-          const { cx, cy, w } = result.placed[i];
+          const { cx, cy, w, tilt } = result.placed[i];
           const l = result.label * (p.labelScale ?? 1);
           return (
             <figure
@@ -288,7 +347,7 @@ export default function ProjectScatter({
                 left: cx,
                 top: cy,
                 width: w,
-                transform: "translate(-50%, -50%)",
+                transform: `translate(-50%, -50%) rotate(${tilt.toFixed(2)}deg)`,
                 transition: move,
               }}
             >
@@ -308,7 +367,7 @@ export default function ProjectScatter({
               <figcaption
                 className="flex items-center justify-center whitespace-nowrap leading-none"
                 style={{
-                  marginTop: 0.6 * l,
+                  marginTop: labelGap(p, w, l),
                   height: l,
                   fontSize: l,
                   transition: `height ${timing}, font-size ${timing}, margin-top ${timing}`,
