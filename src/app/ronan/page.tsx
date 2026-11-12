@@ -13,6 +13,7 @@ import {
   updatePost,
   uploadPhotos,
 } from "./actions";
+import { shrinkImage } from "./shrink-image";
 
 const INITIAL_QUADRANTS: Quadrant[] = [
   { title: "", slug: "" },
@@ -119,24 +120,40 @@ function PhotosTab({
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
+  // Each photo is shrunk in the browser and sent in its own request, so no
+  // single request comes near the server's body limit however many are picked.
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
-    const data = new FormData(form);
+    const input = form.elements.namedItem("files") as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    if (files.length === 0) return;
     setBusy(true);
     setStatus(null);
-    try {
-      const res = await uploadPhotos(data);
-      setStatus(
-        `added ${res.added}${res.skipped ? `, skipped ${res.skipped}` : ""}`,
-      );
-      await refresh();
-      form.reset();
-    } catch (err) {
-      setStatus(`error: ${err instanceof Error ? err.message : "failed"}`);
-    } finally {
-      setBusy(false);
+    let added = 0;
+    let skipped = 0;
+    const failed: string[] = [];
+    for (const [i, file] of files.entries()) {
+      setStatus(`uploading ${i + 1}/${files.length}…`);
+      try {
+        const small = await shrinkImage(file);
+        const data = new FormData();
+        data.append("files", small);
+        const res = await uploadPhotos(data);
+        added += res.added;
+        skipped += res.skipped;
+      } catch {
+        failed.push(file.name);
+      }
     }
+    await refresh();
+    form.reset();
+    setStatus(
+      `added ${added}` +
+        (skipped ? `, skipped ${skipped}` : "") +
+        (failed.length ? `, failed: ${failed.join(", ")}` : ""),
+    );
+    setBusy(false);
   }
 
   async function onDelete(src: string) {
