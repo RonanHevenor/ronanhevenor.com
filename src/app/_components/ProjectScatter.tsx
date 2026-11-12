@@ -292,50 +292,64 @@ export default function ProjectScatter({
           return (
             <figure
               key={p.title}
-              className="absolute m-0 flex flex-col items-center"
+              // the layer ignores the mouse (clicks there still open the quadrant); each
+              // thumbnail takes it back, and comes to the front while it's hovered
+              className="pointer-events-auto absolute m-0 hover:z-20 focus-within:z-20"
               style={{
                 left: cx,
                 top: cy,
                 width: w,
                 transform: `translate(-50%, -50%) rotate(${tilt.toFixed(2)}deg)`,
                 transition: move,
+                ...(hidden ? { pointerEvents: "none" } : null),
               }}
             >
-              <Image
-                src={p.src}
-                alt={p.alt}
-                width={p.w}
-                height={p.h}
-                sizes={`${Math.ceil(p.base * SCALE.expanded * VW_BOOST.expanded)}vw`}
-                className="h-auto w-full"
-                style={
-                  p.radius
-                    ? { borderRadius: w * p.radius, transition: `border-radius ${timing}` }
-                    : undefined
-                }
-              />
-              <figcaption
-                className="flex items-center justify-center whitespace-nowrap leading-none"
-                style={{
-                  marginTop: labelGap(p, w, l),
-                  height: l,
-                  fontSize: l,
-                  transition: `height ${timing}, font-size ${timing}, margin-top ${timing}`,
-                }}
+              {/* the whole thumbnail is the link to its GitHub repository, and grows on hover
+                  or keyboard focus */}
+              <a
+                href={`https://github.com/${p.repo}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${p.title} on GitHub (opens in a new tab)`}
+                tabIndex={hidden ? -1 : undefined}
+                className="flex flex-col items-center rounded-lg outline-offset-8 transition-transform duration-300 ease-out hover:scale-[1.12] focus-visible:scale-[1.12] focus-visible:outline-2 focus-visible:outline-current"
               >
-                {p.label.kind === "image" ? (
-                  <Image
-                    src={p.label.src}
-                    alt={p.title}
-                    width={p.label.w}
-                    height={p.label.h}
-                    unoptimized // small wordmarks (one is an SVG); serve as-is
-                    className="h-full w-auto max-w-none"
-                  />
-                ) : (
-                  <span style={p.label.style}>{p.label.text}</span>
-                )}
-              </figcaption>
+                <Image
+                  src={p.src}
+                  alt={p.alt}
+                  width={p.w}
+                  height={p.h}
+                  sizes={`${Math.ceil(p.base * SCALE.expanded * VW_BOOST.expanded)}vw`}
+                  className="h-auto w-full"
+                  style={
+                    p.radius
+                      ? { borderRadius: w * p.radius, transition: `border-radius ${timing}` }
+                      : undefined
+                  }
+                />
+                <div
+                  className="flex items-center justify-center whitespace-nowrap leading-none"
+                  style={{
+                    marginTop: labelGap(p, w, l),
+                    height: l,
+                    fontSize: l,
+                    transition: `height ${timing}, font-size ${timing}, margin-top ${timing}`,
+                  }}
+                >
+                  {p.label.kind === "image" ? (
+                    <Image
+                      src={p.label.src}
+                      alt={p.title}
+                      width={p.label.w}
+                      height={p.label.h}
+                      unoptimized // small wordmarks (one is an SVG); serve as-is
+                      className="h-full w-auto max-w-none"
+                    />
+                  ) : (
+                    <span style={p.label.style}>{p.label.text}</span>
+                  )}
+                </div>
+              </a>
             </figure>
           );
         })}

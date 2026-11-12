@@ -12,6 +12,7 @@ export type Project = {
   title: string;
   alt: string; // what the thumbnail shows, for screen readers and the plain page
   href?: string; // where the project lives, if it's public
+  repo: string; // its GitHub repository, "owner/name"; the thumbnail links there
   src: string;
   w: number; // intrinsic size, for the aspect ratio
   h: number;
@@ -26,6 +27,7 @@ export type Project = {
 export const PROJECTS: Project[] = [
   {
     title: "Typeset",
+    repo: "RonanHevenor/typeset",
     alt: "The Typeset app icon: a Roman numeral II in rainbow colours on a black tile",
     src: "/projects/typeset.png", w: 512, h: 512, base: 7, cap: 11.5,
     // "Typeset" in SF Pro Black filled with the app icon's rainbow
@@ -35,6 +37,7 @@ export const PROJECTS: Project[] = [
   },
   {
     title: "poly.rpi.edu",
+    repo: "thepoly/polymer",
     alt: "The front page of poly.rpi.edu, The Polytechnic's website, in dark mode",
     href: "https://poly.rpi.edu",
     src: "/projects/poly-site.png", w: 2880, h: 1920, base: 13.5, cap: 22, radius: 0.055,
@@ -44,6 +47,7 @@ export const PROJECTS: Project[] = [
   },
   {
     title: "Sentinel",
+    repo: "RonanHevenor/sentinel",
     alt: "Sentinel's camera view of a heating controller's indicator lights, with green and red detection boxes",
     src: "/projects/sentinel-leds.jpg", w: 640, h: 480, base: 9.5, cap: 15.5, radius: 0.055,
     // the Sentinel dashboard's header: light weight, capitals, letter-spacing 4px at 32px

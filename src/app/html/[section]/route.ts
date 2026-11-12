@@ -38,7 +38,8 @@ export async function GET(_req: NextRequest, ctx: RouteContext<"/html/[section]"
     const projects = PROJECTS.map((p) => {
       const name = p.href ? `<a href="${esc(p.href)}">${esc(p.title)}</a>` : esc(p.title);
       const h = Math.round((240 * p.h) / p.w);
-      return `<li>\n<h2>${name}</h2>\n<p><img src="${esc(p.src)}" width="240" height="${h}" alt="${esc(p.alt)}"></p>\n</li>`;
+      const repo = `<a href="https://github.com/${esc(p.repo)}">${esc(p.repo)}</a>`;
+      return `<li>\n<h2>${name}</h2>\n<p><img src="${esc(p.src)}" width="240" height="${h}" alt="${esc(p.alt)}"></p>\n<p>Code: ${repo}</p>\n</li>`;
     }).join("\n");
     body = `${renderMarkdown(sections.whatido)}\n<ul>\n${projects}\n</ul>`;
   } else if (index === 2) {
