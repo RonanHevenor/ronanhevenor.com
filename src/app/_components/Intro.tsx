@@ -72,6 +72,8 @@ export default function Intro() {
 
 function IntroOverlay() {
   const noIntro = useSyncExternalStore(noSubscribe, skipped, () => false);
+  // once the page's script is running it does the timing, and the CSS-only fallback is off
+  const live = useSyncExternalStore(noSubscribe, () => true, () => false);
   const [gone, setGone] = useState(false);
   const [ending, setEnding] = useState(false);
   // the video wouldn't play: show a still of both sentences instead
@@ -104,25 +106,47 @@ function IntroOverlay() {
     // (the layout checks this cookie).
     track("intro played");
     document.cookie = `${INTRO_SEEN_COOKIE}=1; Max-Age=${INTRO_SEEN_MAX_AGE}; Path=/; SameSite=Lax`;
-    const backstop = setTimeout(end, LONGEST_MS);
+    // The stall backstop only counts time the page is actually in view.
+    let backstop: ReturnType<typeof setTimeout> | undefined;
+    const tryPlay = () => {
+      if (!video || !video.paused || video.ended) return;
+      // Helps where autoplay was only deferred. Only a refusal (NotAllowedError) means the
+      // still: Safari also rejects play() with AbortError when it races its own autoplay, and
+      // the video then plays fine.
+      video.play()?.catch((e: unknown) => {
+        if (e instanceof DOMException && e.name === "NotAllowedError") fallBack();
+      });
+    };
+    // While the page isn't in view (another tab, a minimised window, the phone locked) the
+    // video waits where it is, and carries on from there when they come back. The Page
+    // Visibility API covers every current browser; pagehide/pageshow also catch a page being
+    // put aside and restored whole (the back/forward cache, older Safari).
+    const onVisibility = (e?: Event) => {
+      clearTimeout(backstop);
+      if (document.visibilityState === "hidden" || e?.type === "pagehide") {
+        video?.pause();
+      } else {
+        backstop = setTimeout(end, LONGEST_MS);
+        tryPlay();
+      }
+    };
     if (video) {
       if (video.ended) end();
       video.addEventListener("ended", end);
       video.addEventListener("playing", playing);
       mediaError();
       video.addEventListener("error", mediaError, true);
-      // Helps where autoplay was only deferred. Only a refusal (NotAllowedError) means the
-      // still: Safari also rejects play() with AbortError when it races its own autoplay, and
-      // the video then plays fine.
-      if (video.paused && !video.ended) {
-        video.play()?.catch((e: unknown) => {
-          if (e instanceof DOMException && e.name === "NotAllowedError") fallBack();
-        });
-      }
     }
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", onVisibility);
+    window.addEventListener("pageshow", onVisibility);
+    onVisibility();
     return () => {
       clearTimeout(backstop);
       clearTimeout(stillTimer);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", onVisibility);
+      window.removeEventListener("pageshow", onVisibility);
       video?.removeEventListener("ended", end);
       video?.removeEventListener("playing", playing);
       video?.removeEventListener("error", mediaError, true);
@@ -142,7 +166,7 @@ function IntroOverlay() {
   return (
     <div
       aria-hidden="true"
-      className={`intro${ending ? " intro-ending" : ""}${still ? " intro-still" : ""}`}
+      className={`intro${live ? " intro-live" : ""}${ending ? " intro-ending" : ""}${still ? " intro-still" : ""}`}
       style={LAYOUT.overlay}
       onAnimationEnd={(e) => {
         if (ending && e.target === e.currentTarget) setGone(true);

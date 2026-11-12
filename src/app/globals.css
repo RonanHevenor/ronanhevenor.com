@@ -130,6 +130,10 @@ body {
 .no-intro .intro {
   display: none !important; /* over the inline layout */
 }
+/* the script is running: it ends the intro itself (and may hold it while the page is hidden) */
+.intro.intro-live {
+  animation: none;
+}
 .intro.intro-ending {
   animation: intro-lift 0.8s ease-in-out 1.35s forwards;
 }
