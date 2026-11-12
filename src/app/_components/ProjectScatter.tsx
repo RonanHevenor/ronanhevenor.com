@@ -26,7 +26,7 @@ type Project = {
   h: number;
   base: number; // width at rest, in vw (capped by `cap` vh)
   cap: number;
-  rounded?: boolean; // images without their own rounded corners
+  radius?: number; // corner radius as a fraction of the width, so it scales with the thumbnail
   label: Label;
 };
 
@@ -39,13 +39,13 @@ const PROJECTS: Project[] = [
   },
   {
     title: "poly.rpi.edu",
-    src: "/projects/poly-site.png", w: 2880, h: 1920, base: 13.5, cap: 22,
+    src: "/projects/poly-site.png", w: 2880, h: 1920, base: 13.5, cap: 22, radius: 0.055,
     // the site's wordmark in the paper's red, #D6001C
     label: { kind: "image", src: "/projects/poly-rpi-edu.svg", w: 1121, h: 200 },
   },
   {
     title: "Sentinel",
-    src: "/projects/sentinel-leds.jpg", w: 640, h: 480, base: 9.5, cap: 15.5, rounded: true,
+    src: "/projects/sentinel-leds.jpg", w: 640, h: 480, base: 9.5, cap: 15.5, radius: 0.055,
     // the Sentinel dashboard's header: light weight, capitals, letter-spacing 4px at 32px
     label: {
       kind: "text",
@@ -99,6 +99,12 @@ function getPattern(): Pattern {
 }
 const subscribe = () => () => {};
 
+// The thumbnail's width for a phase (times `k`, e.g. for a corner radius in proportion to it).
+function widthOf(p: Project, phase: ScatterPhase, k = 1): string {
+  const s = SCALE[phase];
+  return `min(${p.base * s * VW_BOOST[phase] * k}vw, ${p.cap * s * k}vh)`;
+}
+
 export default function ProjectScatter({
   phase,
   timing,
@@ -111,8 +117,7 @@ export default function ProjectScatter({
   fadeStyle: React.CSSProperties;
 }) {
   const pattern = useSyncExternalStore(subscribe, getPattern, () => SERVER_PATTERN);
-  const s = SCALE[phase];
-  const move = `left ${timing}, top ${timing}, width ${timing}`;
+  const move =`left ${timing}, top ${timing}, width ${timing}`;
 
   return (
     <div
@@ -131,7 +136,7 @@ export default function ProjectScatter({
             style={{
               left: `${X[phase][i]}%`,
               top: `${y}%`,
-              width: `min(${p.base * s * VW_BOOST[phase]}vw, ${p.cap * s}vh)`,
+              width: widthOf(p, phase),
               transform: "translate(-50%, -50%)",
               transition: move,
             }}
@@ -142,7 +147,12 @@ export default function ProjectScatter({
               width={p.w}
               height={p.h}
               sizes={`${Math.ceil(p.base * SCALE.expanded * VW_BOOST.expanded)}vw`}
-              className={`h-auto w-full${p.rounded ? " rounded-lg" : ""}`}
+              className="h-auto w-full"
+              style={
+                p.radius
+                  ? { borderRadius: widthOf(p, phase, p.radius), transition: `border-radius ${timing}` }
+                  : undefined
+              }
             />
             <figcaption
               className="mt-[0.6em] flex items-center justify-center whitespace-nowrap leading-none"
