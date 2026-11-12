@@ -62,8 +62,15 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+  // "RH", no background, black on light tabs and white on dark ones. The SVG
+  // switches colour itself; the PNGs are for browsers without SVG favicons.
+  // SVG goes last so browsers that take the last matching icon pick it.
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/icon-light.png", type: "image/png", sizes: "64x64", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-dark.png", type: "image/png", sizes: "64x64", media: "(prefers-color-scheme: dark)" },
+      { url: "/icon.svg", type: "image/svg+xml", sizes: "any" },
+    ],
   },
   formatDetection: {
     email: false,

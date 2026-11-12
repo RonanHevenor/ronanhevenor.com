@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    g { stroke: #000; }
+    @media (prefers-color-scheme: dark) { g { stroke: #fff; } }
+  </style>
+  <!-- keeps the R's slanted leg from dipping below the baseline -->
+  <clipPath id="c"><rect x="0" y="6" width="32" height="20" /></clipPath>
+  <g fill="none" stroke-width="3.5" stroke-linejoin="miter" clip-path="url(#c)">
+    <!-- R -->
+    <path d="M4.5 6V26" />
+    <path d="M4.5 7.75H9a4.25 4.25 0 0 1 0 8.5H4.5" />
+    <path d="M8.5 16.25L13.5 26" />
+    <!-- H -->
+    <path d="M20 6V26M28.5 6V26M20 16H28.5" />
+  </g>
+</svg>
