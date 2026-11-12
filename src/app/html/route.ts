@@ -15,7 +15,7 @@ export async function GET() {
   return page({
     title: SITE.title,
     path: "/html",
-    back: "/",
+    back: "/?from=html", // tells the main site to skip its intro
     body: `<h1>Ronan Hevenor's Personal Website</h1>
 <p>Some of my friends would yell at me if I didn't include a basic version of this site in addition to my artistic one. So if the cool version is confusing, hard to use, or makes you seasick&mdash;this is for you.</p>
 <nav aria-label="Sections">

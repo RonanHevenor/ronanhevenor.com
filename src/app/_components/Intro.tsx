@@ -1,22 +1,29 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
-// The intro, on every load: a black screen; "Click a quadrant to read that section" written
-// out (a video rendered with ManimGL, 3Blue1Brown's Manim, tools/intro/hint.py: each letter
-// outlined, then filled, left to right; on phones one word per line, top to bottom); the words
-// fade to black; then the black fades away to the site. The bottom link (PlainLink) fades in as
-// the writing starts, and stays usable above it.
+// The intro, on every load: a black screen; "Click a quadrant to read that section." written
+// out, faded, then "Click again to go back." written out (a video rendered with ManimGL,
+// 3Blue1Brown's Manim, tools/intro/hint.py: each letter outlined, then filled, left to right;
+// a portrait version for phones); the words fade to black; then the black fades away to the
+// site. The bottom link (PlainLink) fades in as the writing starts, and stays usable above it.
 //
-// It can't be clicked past. The timing is CSS (globals.css, "Intro") and the overlay is
-// server-rendered, so it starts on the first frame with no flash of the site underneath. Its
-// layout is also set inline (LAYOUT below): if the page paints before the stylesheet arrives
-// (dev mode, sometimes Safari) it's still a full black screen with the video centred, not a
-// video in the corner of the page. An inline script in <head> (INTRO_GATE, run before first
-// paint) hides it entirely for anyone who has asked their system to reduce motion.
+// The video's own end starts the ending (class "intro-ending": words fade to black, a beat,
+// the black lifts; globals.css), so a video that starts late is never cut off mid-word. If the
+// video won't play (autoplay refused, e.g. Safari in Low Power Mode, or an error), a still of
+// both sentences is shown for the video's length instead.
+//
+// It can't be clicked past. The overlay is server-rendered with its layout inline (LAYOUT
+// below), so it's a full black screen from the first frame, even if the stylesheet arrives late
+// (dev mode, sometimes Safari). An inline script in <head> (INTRO_GATE, run before first paint)
+// hides it entirely for anyone who has asked their system to reduce motion or who has just come
+// from the plain version.
 
-export const INTRO_GATE = `try{if(matchMedia("(prefers-reduced-motion: reduce)").matches){document.documentElement.classList.add("no-intro");var s=document.createElement("style");s.textContent=".intro{display:none!important}";document.head.appendChild(s)}}catch(e){}`;
+// Skipped for reduced motion, and when arriving from the plain version (/html): seen from the
+// previous page's address, or from ?from=html on the plain version's links back (in case the
+// address isn't passed along), which is then taken out of the address bar.
+export const INTRO_GATE = `try{var q=new URLSearchParams(location.search),h=q.get("from")==="html",r=document.referrer;if(h){q.delete("from");var t=q.toString();history.replaceState(history.state,"",location.pathname+(t?"?"+t:"")+location.hash)}if(!h&&r){var u=new URL(r);h=u.origin===location.origin&&(u.pathname==="/html"||u.pathname.indexOf("/html/")===0)}if(h||matchMedia("(prefers-reduced-motion: reduce)").matches){document.documentElement.classList.add("no-intro");var s=document.createElement("style");s.textContent=".intro{display:none!important}";document.head.appendChild(s)}}catch(e){}`;
 
 const LAYOUT = {
   overlay: {
@@ -28,65 +35,102 @@ const LAYOUT = {
 
 // Written as raw HTML because React leaves `muted` out of server-rendered markup, and browsers
 // only autoplay muted video; this way it starts playing before any JavaScript has loaded.
-// Phones held upright get the vertical version (two lines, portrait); the browser picks a
-// <source> before downloading, so each device fetches only its own.
+// Phones held upright get the vertical version; the browser picks a <source> before
+// downloading, so each device fetches only its own.
 const PHONE = "(orientation: portrait) and (max-width: 820px)";
 const VIDEO = `<video autoplay muted playsinline preload="auto" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000"><source src="/intro/hint-vertical.mp4" media="${PHONE}" type="video/mp4"><source src="/intro/hint.mp4" type="video/mp4"></video>`;
 
-// Just after the timeline ends (6.0 s, globals.css).
-const DONE_MS = 6100;
+const VIDEO_MS = 6300; // the videos' length; how long the still stays up instead
+const ENDING_MS = 2150; // the ending's fades (globals.css), then the overlay is removed
+const LONGEST_MS = 12000; // if the video stalls and never ends, end anyway
+
+// Arriving from the plain version (or with reduced motion): INTRO_GATE has already hidden the
+// overlay; this takes it out of the page so the video doesn't load in the background.
+const skipped = () => document.documentElement.classList.contains("no-intro");
+const noSubscribe = () => () => {};
 
 export default function Intro() {
   const pathname = usePathname();
+  const noIntro = useSyncExternalStore(noSubscribe, skipped, () => false);
   const [gone, setGone] = useState(false);
-  // the video wouldn't play (autoplay refused, e.g. Safari in Low Power Mode, or an error):
-  // show a still of the finished words instead, with the same fades
-  // (when, in seconds since the page started, so its fade can keep to the same timeline)
-  const [still, setStill] = useState<number | null>(null);
+  const [ending, setEnding] = useState(false);
+  // the video wouldn't play: show a still of both sentences instead
+  const [still, setStill] = useState(false);
 
   useEffect(() => {
-    // The overlay normally removes itself when its fade-out ends (onAnimationEnd below); this is
-    // the backstop for browsers that pause animations (background tabs).
-    const done = setTimeout(() => setGone(true), DONE_MS);
-
-    // Ask it to play (helps where autoplay was only deferred) and fall back to the still if the
-    // browser refuses or the file can't be played.
+    if (skipped()) return;
     const video = document.querySelector<HTMLVideoElement>(".intro video");
-    const fallBack = () => setStill((t) => t ?? performance.now() / 1000);
+    const end = () => setEnding(true);
+    let stillTimer: ReturnType<typeof setTimeout> | undefined;
+    // Only when the video really can't play: shown the still for the video's length instead.
+    const fallBack = () => {
+      if (!video || video.currentTime > 0 || !video.paused) return; // it's playing after all
+      setStill((was) => {
+        if (!was) stillTimer = setTimeout(end, VIDEO_MS);
+        return true;
+      });
+    };
+    // ...and if it starts playing anyway, back to the video, ending when it ends
+    const playing = () => {
+      clearTimeout(stillTimer);
+      setStill(false);
+    };
+    const mediaError = () => {
+      // a <source> failing only matters once there's nothing left to try (on a desktop, the
+      // phone source is never tried; that's not a failure)
+      if (video && (video.error || video.networkState === HTMLMediaElement.NETWORK_NO_SOURCE)) fallBack();
+    };
+    const backstop = setTimeout(end, LONGEST_MS);
     if (video) {
-      if (video.error) fallBack();
-      video.addEventListener("error", fallBack, true);
-      video.querySelectorAll("source").forEach((s) => s.addEventListener("error", fallBack));
-      if (video.paused) video.play()?.catch(fallBack);
+      if (video.ended) end();
+      video.addEventListener("ended", end);
+      video.addEventListener("playing", playing);
+      mediaError();
+      video.addEventListener("error", mediaError, true);
+      // Helps where autoplay was only deferred. Only a refusal (NotAllowedError) means the
+      // still: Safari also rejects play() with AbortError when it races its own autoplay, and
+      // the video then plays fine.
+      if (video.paused && !video.ended) {
+        video.play()?.catch((e: unknown) => {
+          if (e instanceof DOMException && e.name === "NotAllowedError") fallBack();
+        });
+      }
     }
     return () => {
-      clearTimeout(done);
-      video?.removeEventListener("error", fallBack, true);
+      clearTimeout(backstop);
+      clearTimeout(stillTimer);
+      video?.removeEventListener("ended", end);
+      video?.removeEventListener("playing", playing);
+      video?.removeEventListener("error", mediaError, true);
     };
   }, []);
 
-  if (gone || pathname.startsWith("/ronan")) return null;
+  // once the ending starts, the overlay goes when its fade finishes (onAnimationEnd below), or
+  // just after, for browsers that pause animations (background tabs)
+  useEffect(() => {
+    if (!ending) return;
+    const t = setTimeout(() => setGone(true), ENDING_MS + 100);
+    return () => clearTimeout(t);
+  }, [ending]);
+
+  if (gone || noIntro || pathname.startsWith("/ronan")) return null;
 
   return (
     <div
       aria-hidden="true"
-      className="intro"
+      className={`intro${ending ? " intro-ending" : ""}`}
       style={LAYOUT.overlay}
       onAnimationEnd={(e) => {
-        if (e.target === e.currentTarget) setGone(true);
+        if (ending && e.target === e.currentTarget) setGone(true);
       }}
     >
       <div
         className="intro-video"
-        style={{ ...LAYOUT.fill, ...(still !== null ? { visibility: "hidden" } : null) }}
+        style={{ ...LAYOUT.fill, ...(still ? { visibility: "hidden" } : null) }}
         dangerouslySetInnerHTML={{ __html: VIDEO }}
       />
-      {still !== null && (
-        // fades at 4.0 s after the page started, like the video (an animation added later counts
-        // from when it's added, so its delay is shortened by how late it arrived)
-        <picture
-          style={{ ...LAYOUT.fill, animation: `intro-out 0.8s ease-in-out ${Math.max(0, 4 - still)}s forwards` }}
-        >
+      {still && (
+        <picture className="intro-video" style={LAYOUT.fill}>
           <source media={PHONE} srcSet="/intro/hint-vertical.png" />
           <img src="/intro/hint.png" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
         </picture>
