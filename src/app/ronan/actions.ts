@@ -20,6 +20,7 @@ import {
   type Sections,
 } from "@/lib/data";
 import type { ImageRef, Project } from "@/lib/projects";
+import { summarize, type Summary } from "@/lib/analytics";
 import { readImageDims } from "@/lib/image-dims";
 import { destroySession, requireAuth } from "@/lib/auth";
 
@@ -195,6 +196,7 @@ const RESERVED_SLUGS = new Set([
   "gallery",
   "img",
   "u",
+  "a",
   "html",
   "uploads",
   "projects",
@@ -367,4 +369,14 @@ export async function moveProject(slug: string, by: -1 | 1): Promise<void> {
 export async function logout(): Promise<void> {
   await destroySession();
   redirect("/ronan/login");
+}
+
+// --- Analytics (anonymous counts; see src/lib/analytics.ts) ---
+
+export async function getAnalytics(days: number, tzOffsetMin: number): Promise<Summary> {
+  await requireAuth();
+  const range = [1, 7, 30, 90].includes(days) ? days : 7;
+  const offset = Number.isFinite(tzOffsetMin) ? Math.max(-840, Math.min(840, Math.round(tzOffsetMin))) : 0;
+  const { quadrants } = await getSections();
+  return summarize(range, offset, quadrants.map((q) => q.slug));
 }

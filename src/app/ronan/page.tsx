@@ -16,6 +16,7 @@ import {
 } from "./actions";
 import { shrinkImage } from "./shrink-image";
 import ProjectsTab from "./ProjectsTab";
+import AnalyticsTab from "./AnalyticsTab";
 
 const INITIAL_QUADRANTS: Quadrant[] = [
   { title: "", slug: "" },
@@ -29,7 +30,7 @@ const inputClass =
 
 export default function RonanAdmin() {
   const [tab, setTab] = useState<
-    "photos" | "posts" | "projects" | "sections" | "quadrants"
+    "analytics" | "photos" | "posts" | "projects" | "sections" | "quadrants"
   >("photos");
   const [projects, setProjects] = useState<Project[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -55,6 +56,7 @@ export default function RonanAdmin() {
   }, []);
 
   const tabs = [
+    { k: "analytics" as const, count: null },
     { k: "photos" as const, count: photos.length },
     { k: "posts" as const, count: posts.length },
     { k: "projects" as const, count: projects.length },
@@ -64,7 +66,7 @@ export default function RonanAdmin() {
 
   return (
     <div className="flex-1 flex justify-center p-6">
-      <div className="w-full max-w-3xl space-y-6">
+      <div className={`w-full space-y-6 ${tab === "analytics" ? "max-w-6xl" : "max-w-3xl"}`}>
         <header className="flex items-baseline justify-between">
           <h1 className="text-2xl font-semibold tracking-tight">ronan admin</h1>
           <div className="flex items-center gap-4 text-sm text-neutral-500">
@@ -98,6 +100,8 @@ export default function RonanAdmin() {
 
         {!loaded ? (
           <p className="text-neutral-500">Loading...</p>
+        ) : tab === "analytics" ? (
+          <AnalyticsTab quadrants={sections.quadrants} />
         ) : tab === "photos" ? (
           <PhotosTab photos={photos} refresh={refresh} />
         ) : tab === "posts" ? (

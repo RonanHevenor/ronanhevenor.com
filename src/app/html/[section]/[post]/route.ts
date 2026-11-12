@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { recordServerView } from "@/lib/analytics";
 import { getPosts, getProjects, getSections } from "@/lib/data";
 import { renderMarkdown } from "@/lib/markdown";
 import { SITE } from "@/lib/seo";
@@ -16,6 +17,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext<"/html/[section]/
   if (section === work.slug) {
     const project = (await getProjects()).find((p) => p.slug === slug);
     if (!project) return notFound();
+    recordServerView(_req, `/html/${work.slug}/${project.slug}`);
     const t = project.titleImage;
     const h = Math.round((Math.min(480, t.w) * t.h) / t.w);
     return page({
@@ -32,6 +34,7 @@ ${project.body ? renderMarkdown(project.body) : ""}
   if (section !== thoughts.slug) return notFound();
   const post = posts.find((p) => p.slug === slug || p.pastSlugs?.includes(slug));
   if (!post) return notFound();
+  recordServerView(_req, `/html/${thoughts.slug}/${post.slug}`);
 
   return page({
     title: `${post.title} — ${SITE.title}`,

@@ -4,6 +4,7 @@ import "./globals.css";
 import Intro, { INTRO_GATE } from "./_components/Intro";
 import PlainLink from "./_components/PlainLink";
 import Surface from "./_components/Surface";
+import Tracker from "./_components/Tracker";
 import { cookies } from "next/headers";
 import { getPhotos, getPosts, getProjects, getSections } from "@/lib/data";
 import { INTRO_SEEN_COOKIE } from "@/lib/intro";
@@ -145,6 +146,7 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }}
         />
+        <Tracker />
         <PlainLink />
         {!introSeen && <Intro />}
         <Surface

@@ -162,3 +162,47 @@ html:not(.no-intro) .intro-link {
 @keyframes intro-lift {
   to { opacity: 0; }
 }
+
+/* ---------- Analytics charts (src/app/ronan/AnalyticsTab.tsx) ----------
+   Roles, not raw colours: two series, one blue ramp for magnitude (0 = none, receding into the
+   surface; 6 = most), and ink for all text. Dark mode has its own steps of the same hues. */
+.viz {
+  --viz-surface: #ffffff;
+  --viz-wash: #f1f1ee;
+  --viz-ink: #0b0b0b;
+  --viz-ink-2: #52514e;
+  --viz-muted: #898781;
+  --viz-grid: #e1e0d9;
+  --viz-axis: #c3c2b7;
+  --viz-s1: #2a78d6;
+  --viz-s2: #eb6834;
+  --viz-seq-0: #f1f1ee;
+  --viz-seq-1: #cde2fb;
+  --viz-seq-2: #9ec5f4;
+  --viz-seq-3: #6da7ec;
+  --viz-seq-4: #3987e5;
+  --viz-seq-5: #1c5cab;
+  --viz-seq-6: #0d366b;
+  --viz-on-strong: #ffffff; /* text on steps 4-6 */
+}
+@media (prefers-color-scheme: dark) {
+  .viz {
+    --viz-surface: #0a0a0a;
+    --viz-wash: #1c1c1b;
+    --viz-ink: #f0efec;
+    --viz-ink-2: #c3c2b7;
+    --viz-muted: #898781;
+    --viz-grid: #2c2c2a;
+    --viz-axis: #383835;
+    --viz-s1: #3987e5;
+    --viz-s2: #d95926;
+    --viz-seq-0: #1c1c1b;
+    --viz-seq-1: #0d366b;
+    --viz-seq-2: #184f95;
+    --viz-seq-3: #256abf;
+    --viz-seq-4: #3987e5;
+    --viz-seq-5: #86b6ef;
+    --viz-seq-6: #cde2fb;
+    --viz-on-strong: #0b0b0b;
+  }
+}

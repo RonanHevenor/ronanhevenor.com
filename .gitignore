@@ -45,6 +45,7 @@ next-env.d.ts
 /data/posts.json
 /data/sections.json
 /data/projects.json
+/data/analytics/
 /public/gallery/
 /public/uploads/
 

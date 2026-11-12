@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { recordServerView } from "@/lib/analytics";
 import { getPhotos, getPosts, getProjects, getSections } from "@/lib/data";
 import { renderMarkdown } from "@/lib/markdown";
 import { SITE } from "@/lib/seo";
@@ -21,6 +22,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext<"/html/[section]"
   const index = sections.quadrants.findIndex((q) => q.slug === section);
   if (index === -1) return notFound();
   const q = sections.quadrants[index];
+  recordServerView(_req, `/html/${q.slug}`);
 
   let body: string;
   if (index === 0) {

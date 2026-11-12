@@ -1,3 +1,4 @@
+import { recordServerView } from "@/lib/analytics";
 import { getSections } from "@/lib/data";
 import { SITE } from "@/lib/seo";
 import { esc, page } from "./html";
@@ -7,7 +8,8 @@ import { esc, page } from "./html";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
+  recordServerView(req, "/html");
   const { quadrants } = await getSections();
   const items = quadrants
     .map((q) => `<li><a href="/html/${esc(q.slug)}">${esc(q.title)}</a></li>`)

@@ -254,12 +254,16 @@ export default function ProjectScatter({
     const section = rootRef.current?.parentElement;
     const main = section?.parentElement;
     if (!section || !main) return;
-    const text = section.querySelector(".markdown");
+    // the quadrant's own text (Surface marks it). While a project's page is open it isn't in
+    // the page; keep the last measurement then, and measure the new element on coming back
+    // (this effect runs again whenever `hidden` changes).
+    const text = section.querySelector("[data-scatter-text]");
     const read = () => {
+      if (!text?.isConnected) return;
       // in the quadrant's content coordinates (where the thumbnails are placed), so it's right
       // however far the open quadrant has been scrolled
       const st = section.getBoundingClientRect().top - section.scrollTop;
-      const tb = text ? text.getBoundingClientRect().bottom - st : 120;
+      const tb = text.getBoundingClientRect().bottom - st;
       setM((prev) => {
         const next = { screenW: main.clientWidth, screenH: main.clientHeight, textBottom: Math.round(tb) };
         return prev && prev.screenW === next.screenW && prev.screenH === next.screenH && prev.textBottom === next.textBottom
@@ -272,7 +276,7 @@ export default function ProjectScatter({
     if (text) ro.observe(text);
     read();
     return () => ro.disconnect();
-  }, []);
+  }, [hidden]);
 
   let result: Layout | null = null;
   if (m && projects.length) {

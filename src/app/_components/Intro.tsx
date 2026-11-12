@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { memo, useEffect, useState, useSyncExternalStore } from "react";
 import { INTRO_SEEN_COOKIE, INTRO_SEEN_MAX_AGE } from "@/lib/intro";
+import { track } from "./Tracker";
 
 // The intro, on a first visit (then a cookie keeps it off for a week; src/lib/intro.ts): a
 // black screen; "Click a quadrant to read that section." written
@@ -61,8 +62,15 @@ const LONGEST_MS = 12000; // if the video stalls and never ends, end anyway
 const skipped = () => document.documentElement.classList.contains("no-intro");
 const noSubscribe = () => () => {};
 
+// Only when the site is opened at its homepage: not on a section, a post, a project, a 404 or
+// the admin, and not on coming back to the homepage later in the same load.
 export default function Intro() {
   const pathname = usePathname();
+  const [startedAt] = useState(pathname);
+  return startedAt === "/" ? <IntroOverlay /> : null;
+}
+
+function IntroOverlay() {
   const noIntro = useSyncExternalStore(noSubscribe, skipped, () => false);
   const [gone, setGone] = useState(false);
   const [ending, setEnding] = useState(false);
@@ -94,6 +102,7 @@ export default function Intro() {
     };
     // It's playing: they'll know how to use the site from now on, so no intro on later visits
     // (the layout checks this cookie).
+    track("intro played");
     document.cookie = `${INTRO_SEEN_COOKIE}=1; Max-Age=${INTRO_SEEN_MAX_AGE}; Path=/; SameSite=Lax`;
     const backstop = setTimeout(end, LONGEST_MS);
     if (video) {
@@ -128,7 +137,7 @@ export default function Intro() {
     return () => clearTimeout(t);
   }, [ending]);
 
-  if (gone || noIntro || pathname.startsWith("/ronan")) return null;
+  if (gone || noIntro) return null;
 
   return (
     <div

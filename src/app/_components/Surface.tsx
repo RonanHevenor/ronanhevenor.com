@@ -177,6 +177,7 @@ function buildQuadrants(
         // wraps to the width this quadrant has when hovered (BIG of the screen, less padding), so
         // it's a little cut off at rest, fully shown on hover, and doesn't rewrap mid-animation;
         // never narrower than the quadrant itself, so phones (no hover) get full-width lines
+        data-scatter-text // ProjectScatter keeps the thumbnails below this
         className="markdown px-6 pb-6 text-xl leading-relaxed"
         style={{ width: `min(max(calc(${BIG.replace("%", "vw")} - 3rem), 100%), 42rem)` }}
         dangerouslySetInnerHTML={{ __html: sections.whatido }}
@@ -242,7 +243,9 @@ function pathToIndex(
 // (html pre-sanitized by renderMarkdown() server-side); links go in the write-up itself.
 function renderProject(project: SurfaceProject) {
   return (
-    <article className="stable-col is-centered space-y-6 px-6 pb-16 text-xl leading-relaxed">
+    // on wide screens the column sits clear of the quadrant's title, so the title image moves
+    // up level with it, near the top of the screen
+    <article className="stable-col is-centered space-y-6 px-6 pb-16 text-xl leading-relaxed xl:-mt-12">
       <h2>
         <Image
           src={project.titleImage.src}
