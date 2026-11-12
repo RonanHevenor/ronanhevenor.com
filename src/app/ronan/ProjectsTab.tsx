@@ -80,7 +80,6 @@ export default function ProjectsTab({
               <div className="font-medium">{p.title}</div>
               <div className="truncate text-xs text-neutral-500">
                 /{p.slug}
-                {p.repo ? ` · github.com/${p.repo}` : ""}
                 {p.body ? "" : " · nothing written yet"}
               </div>
             </div>
@@ -195,17 +194,6 @@ function ProjectEditor({
         </div>
         <SizePreview items={strip} />
       </fieldset>
-
-      <div className="grid gap-6 sm:grid-cols-2">
-        <label className="block space-y-2">
-          <span className="text-sm font-medium">GitHub repo</span>
-          <input className={inputClass} value={d.repo ?? ""} onChange={(e) => set("repo", e.target.value)} placeholder="RonanHevenor/typeset" />
-        </label>
-        <label className="block space-y-2">
-          <span className="text-sm font-medium">Live site (optional)</span>
-          <input className={inputClass} value={d.href ?? ""} onChange={(e) => set("href", e.target.value)} placeholder="https://poly.rpi.edu" />
-        </label>
-      </div>
 
       <MarkdownEditor
         label="The project's page"

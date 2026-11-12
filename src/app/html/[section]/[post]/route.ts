@@ -16,10 +16,6 @@ export async function GET(_req: NextRequest, ctx: RouteContext<"/html/[section]/
   if (section === work.slug) {
     const project = (await getProjects()).find((p) => p.slug === slug);
     if (!project) return notFound();
-    const links = [
-      project.repo ? `<a href="https://github.com/${esc(project.repo)}">Code on GitHub</a>` : "",
-      project.href ? `<a href="${esc(project.href)}">Live site</a>` : "",
-    ].filter(Boolean).join(" | ");
     const t = project.titleImage;
     const h = Math.round((Math.min(480, t.w) * t.h) / t.w);
     return page({
@@ -28,8 +24,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext<"/html/[section]/
       back: `/html/${work.slug}`,
       body: `<article>
 <h1><img src="${esc(t.src)}" width="${Math.min(480, t.w)}" height="${h}" alt="${esc(project.title)}"></h1>
-${links ? `<p>${links}</p>` : ""}
-${project.body ? renderMarkdown(project.body) : "<p>Nothing written about this one yet.</p>"}
+${project.body ? renderMarkdown(project.body) : ""}
 </article>`,
     });
   }

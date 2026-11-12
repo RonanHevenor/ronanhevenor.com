@@ -99,7 +99,8 @@ function layout(
   textBottom: number, // px from the quadrant's top
   phase: ScatterPhase,
   pattern: Pattern,
-): { placed: Placed[]; label: number } {
+  titlesOnly: boolean, // lay out just the title images (no logos), for spaces too tight for icons
+): Layout {
   const n = projects.length;
   const s = SCALE[phase];
   const [lMin, lVw, lMax] = LABEL[phase];
@@ -110,19 +111,25 @@ function layout(
     left: pad,
     top: textBottom + gap,
     width: Math.max(0, W - 2 * pad),
-    height: Math.max(0, H - textBottom - gap - Math.max(pad, 0.06 * H)),
+    // however long the text above gets, keep at least 45% of the quadrant's height for the
+    // thumbnails; with very long text they sit below it (the open quadrant scrolls to them)
+    height: Math.max(0.45 * H, H - textBottom - gap - Math.max(pad, 0.06 * H)),
   };
 
   // preferred widths; everything is scaled together by `f` to fill the space
   const want = projects.map((p) =>
     Math.min((p.size * s * VW_BOOST[phase] * screenW) / 100, (p.size * SIZE_TO_VH_CAP * s * screenH) / 100),
   );
-  const labelH = (i: number) => label * projects[i].titleSize;
-  const labelW = (i: number) => (labelH(i) * projects[i].titleImage.w) / projects[i].titleImage.h;
-  // room an item takes across (image or title, whichever is wider) and down (image, gap, title)
-  const spanOf = (i: number, w: number) => Math.max(w, labelW(i));
-  const heightOf = (i: number, w: number) =>
-    (w * projects[i].logo.h) / projects[i].logo.w + 0.6 * labelH(i) + labelH(i);
+  // titles keep their size unless the thumbnails have to shrink below their preferred size
+  // (a narrow quadrant on a phone), then they shrink with them, so everything still fits
+  const labelK = (f: number) => Math.min(1, f);
+  const labelH = (i: number, f: number) => label * labelK(f) * projects[i].titleSize;
+  const labelW = (i: number, f: number) => (labelH(i, f) * projects[i].titleImage.w) / projects[i].titleImage.h;
+  // room an item takes across (logo or title, whichever is wider) and down (logo, gap, title)
+  const spanOf = (i: number, f: number) =>
+    titlesOnly ? labelW(i, f) : Math.max(want[i] * f, labelW(i, f));
+  const heightOf = (i: number, f: number) =>
+    titlesOnly ? labelH(i, f) : (want[i] * f * projects[i].logo.h) / projects[i].logo.w + 1.6 * labelH(i, f);
 
   type Rows = { items: number[] }[];
   const rowsFor = (r: number): Rows => {
@@ -134,9 +141,9 @@ function layout(
   const bounds = (rows: Rows, f: number) => {
     let bw = 0, bh = 0;
     for (const row of rows) {
-      const span = row.items.reduce((t, i) => t + spanOf(i, want[i] * f), 0) + gap * (row.items.length - 1);
+      const span = row.items.reduce((t, i) => t + spanOf(i, f), 0) + gap * (row.items.length - 1);
       bw = Math.max(bw, span);
-      bh += Math.max(...row.items.map((i) => heightOf(i, want[i] * f)));
+      bh += Math.max(...row.items.map((i) => heightOf(i, f)));
     }
     return { w: bw, h: bh + gap * (rows.length - 1) };
   };
@@ -150,7 +157,7 @@ function layout(
       return b.w <= region.width * FILL && b.h <= region.height * FILL;
     };
     if (ok(MAX_F)) return MAX_F;
-    let lo = 0.15, hi = MAX_F;
+    let lo = 0.05, hi = MAX_F;
     for (let k = 0; k < 24; k++) { const m = (lo + hi) / 2; if (ok(m)) lo = m; else hi = m; }
     return lo;
   };
@@ -162,9 +169,10 @@ function layout(
   const rows = options[pickIdx];
   const f = scores[pickIdx];
 
-  const img = want.map((x) => x * f); // image widths
-  const span = img.map((x, i) => spanOf(i, x));
-  const ht = img.map((x, i) => heightOf(i, x));
+  // each item's width: its logo's, or with titles only its title's
+  const img = want.map((x, i) => (titlesOnly ? labelW(i, f) : x * f));
+  const span = img.map((_, i) => spanOf(i, f));
+  const ht = img.map((_, i) => heightOf(i, f));
   const b = bounds(rows, f);
   const slackY = Math.max(0, region.height - b.h);
   const rowGap = gap + slackY / (rows.length + 1);
@@ -195,8 +203,28 @@ function layout(
     p.cy += pattern.nudge[i % MAX_ITEMS].y * Math.max(0, room[i].y) * k;
     p.tilt = pattern.tilt[i % MAX_ITEMS] * MAX_TILT * TILT[phase];
   });
-  return { placed, label };
+
+  // Keep clear of the text, counting each one's tilt and the
+  // 1.12x it grows to when hovered. Every resting spot clearing the text means the straight
+  // paths between them do too, so they never cross it while they fly about.
+  const HOVER_GROW = 1.12;
+  const clearTop = textBottom + Math.max(10, gap * 0.5);
+  placed.forEach((p, i) => {
+    const t = (Math.abs(p.tilt) * Math.PI) / 180;
+    const halfH = ((ht[i] * Math.cos(t) + span[i] * Math.sin(t)) * HOVER_GROW) / 2;
+    if (p.cy - halfH < clearTop) p.cy = clearTop + halfH;
+  });
+  // when long text has pushed them down to (or past) the bottom, where the open quadrant needs to
+  // be able to scroll to so they clear the fixed link at the bottom of the screen
+  const lowest = Math.max(...placed.map((p, i) => p.cy + ht[i] / 2));
+  const scrollTo = lowest > H - 72 ? lowest + 72 : null;
+  return { placed, label: label * labelK(f), titlesOnly, scrollTo };
 }
+
+type Layout = { placed: Placed[]; label: number; titlesOnly: boolean; scrollTo: number | null };
+
+// Logos smaller than this (px wide) are too small to read; below it, show just the titles.
+const MIN_LOGO = 44;
 
 type Measure = { screenW: number; screenH: number; textBottom: number };
 
@@ -228,7 +256,9 @@ export default function ProjectScatter({
     if (!section || !main) return;
     const text = section.querySelector(".markdown");
     const read = () => {
-      const st = section.getBoundingClientRect().top;
+      // in the quadrant's content coordinates (where the thumbnails are placed), so it's right
+      // however far the open quadrant has been scrolled
+      const st = section.getBoundingClientRect().top - section.scrollTop;
       const tb = text ? text.getBoundingClientRect().bottom - st : 120;
       setM((prev) => {
         const next = { screenW: main.clientWidth, screenH: main.clientHeight, textBottom: Math.round(tb) };
@@ -244,7 +274,7 @@ export default function ProjectScatter({
     return () => ro.disconnect();
   }, []);
 
-  let result: { placed: Placed[]; label: number } | null = null;
+  let result: Layout | null = null;
   if (m && projects.length) {
     // Lay out for where the quadrant is going, not where it is mid-animation. When it's
     // shrinking to nothing (another quadrant is open), keep the resting layout while it fades.
@@ -252,7 +282,12 @@ export default function ProjectScatter({
     const tiny = pw < 5 || ph < 5;
     const W = tiny ? m.screenW / 2 : (pw / 100) * m.screenW;
     const H = tiny ? m.screenH / 2 : (ph / 100) * m.screenH;
-    result = layout(projects, W, H, m.screenW, m.screenH, m.textBottom, tiny ? "idle" : phase, pattern);
+    const ph2 = tiny ? "idle" : phase;
+    result = layout(projects, W, H, m.screenW, m.screenH, m.textBottom, ph2, pattern, false);
+    // too tight for readable logos: just the titles, which then get the room to themselves
+    if (Math.min(...result.placed.map((p) => p.w)) < MIN_LOGO) {
+      result = layout(projects, W, H, m.screenW, m.screenH, m.textBottom, ph2, pattern, true);
+    }
   }
   const move = `left ${timing}, top ${timing}, width ${timing}, transform ${timing}`;
 
@@ -264,6 +299,10 @@ export default function ProjectScatter({
       // hidden (not faded) until the first measurement, so nothing has to animate in from 0
       style={{ ...fadeStyle, ...(result ? null : { visibility: "hidden" }) }}
     >
+      {result?.scrollTo != null && (
+        // extends the open quadrant's scroll below the lowest thumbnail
+        <div aria-hidden className="absolute left-0 h-px w-px" style={{ top: result.scrollTo }} />
+      )}
       {result &&
         projects.map((p, i) => {
           const { cx, cy, w, tilt } = result.placed[i];
@@ -290,6 +329,7 @@ export default function ProjectScatter({
                 tabIndex={hidden ? -1 : undefined}
                 className="flex flex-col items-center rounded-lg outline-offset-8 transition-transform duration-300 ease-out hover:scale-[1.12] focus-visible:scale-[1.12] focus-visible:outline-2 focus-visible:outline-current"
               >
+                {!result.titlesOnly && (
                 <Image
                   src={p.logo.src}
                   alt={p.logoAlt}
@@ -299,10 +339,11 @@ export default function ProjectScatter({
                   className="h-auto w-full"
                   style={{ borderRadius: w * CORNER_RADIUS, transition: `border-radius ${timing}` }}
                 />
+                )}
                 <div
                   className="flex items-center justify-center whitespace-nowrap leading-none"
                   style={{
-                    marginTop: 0.6 * l,
+                    marginTop: result.titlesOnly ? 0 : 0.6 * l,
                     height: l,
                     transition: `height ${timing}, margin-top ${timing}`,
                   }}
