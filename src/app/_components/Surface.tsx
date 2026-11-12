@@ -175,10 +175,20 @@ function buildQuadrants(
       />
     ),
     (
-      <div
-        className="markdown stable-col px-6 pb-6 text-xl leading-relaxed"
-        dangerouslySetInnerHTML={{ __html: sections.whoiam }}
-      />
+      <div className="stable-col flex flex-col gap-6 px-6 pb-6 sm:flex-row sm:items-start">
+        <Image
+          src="/headshot.jpg"
+          alt="Ronan Hevenor"
+          width={750}
+          height={1000}
+          sizes="(min-width: 640px) 12rem, 10rem"
+          className="w-40 shrink-0 rounded-lg sm:w-48"
+        />
+        <div
+          className="markdown min-w-0 flex-1 text-xl leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: sections.whoiam }}
+        />
+      </div>
     ),
     posts.length === 0 ? (
       <p className={`stable-col${blogCenter} px-6 pb-6 text-xl text-neutral-400`}>
