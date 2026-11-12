@@ -553,6 +553,7 @@ export default function Surface({
               <ProjectScatter
                 phase={scatterPhase(expanded, hovered)}
                 timing={layoutTiming}
+                box={box}
                 hidden={beingPushed}
                 fadeStyle={{
                   opacity: beingPushed ? 0 : 1,
