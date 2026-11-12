@@ -79,7 +79,7 @@ export default function AnalyticsTab({ quadrants }: { quadrants: Quadrant[] }) {
         <p className="py-16 text-center text-sm text-[var(--viz-muted)]">Counting…</p>
       ) : data.totals.views === 0 && data.previous.views === 0 ? (
         <p className="py-16 text-center text-sm text-[var(--viz-muted)]">
-          Nothing counted in this period yet. Visits show up here within seconds of happening.
+          Nothing yet
         </p>
       ) : (
         <>
@@ -89,10 +89,10 @@ export default function AnalyticsTab({ quadrants }: { quadrants: Quadrant[] }) {
           </Panel>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Panel title="Where on the site" note="Page views of each section, laid out like the site itself">
+            <Panel title="Where on the site">
               <SiteMap quadrants={quadrants} counts={data.quadrants} />
             </Panel>
-            <Panel title="When people visit" note="Page views by weekday and hour, your time">
+            <Panel title="When people visit">
               <HeatMap heat={data.heat} />
             </Panel>
           </div>
@@ -109,36 +109,30 @@ export default function AnalyticsTab({ quadrants }: { quadrants: Quadrant[] }) {
               <h4 className="mt-4 mb-2 text-xs text-[var(--viz-muted)]">Systems</h4>
               <Bars rows={data.systems} unit="visits" empty="" />
             </Panel>
-            <Panel title="Things people did" note="The intro playing, links followed off the site">
+            <Panel title="Things people did">
               <Bars rows={data.events} unit="times" empty="Nothing yet" />
             </Panel>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Panel title="Paths through the site" note="The pages of a visit, in order, for visits that saw more than one">
+            <Panel title="Paths through the site">
               <Bars rows={data.journeys} unit="visits" empty="No multi-page visits reported yet" />
             </Panel>
-            <Panel title="Just now" note="The latest page views">
+            <Panel title="Just now">
               <Recent rows={data.recent} now={loadedAt} />
             </Panel>
           </div>
 
-          <p className="text-xs text-[var(--viz-muted)]">
-            Anonymous by construction: no IP addresses, no cookies, no visitor IDs, nothing stored on anyone&rsquo;s device. A
-            &ldquo;visit&rdquo; is one page load, so the same person coming back counts again. Bots, &ldquo;do not track&rdquo;
-            browsers and you (signed in) aren&rsquo;t counted. Updates every {REFRESH_MS / 1000} seconds.
-          </p>
         </>
       )}
     </div>
   );
 }
 
-function Panel({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-lg border border-[var(--viz-grid)] bg-[var(--viz-surface)] p-4">
       <h3 className="text-sm font-medium text-[var(--viz-ink)]">{title}</h3>
-      {note && <p className="mt-0.5 text-xs text-[var(--viz-muted)]">{note}</p>}
       <div className="mt-3">{children}</div>
     </section>
   );
@@ -342,7 +336,7 @@ function HeatMap({ heat }: { heat: number[][] }) {
         ))}
       </div>
       <div className="mt-2 flex items-center justify-between text-xs text-[var(--viz-ink-2)]">
-        <span>{at ? <>{DAYS[at[0]]} {hour(at[1])}: <b className="text-[var(--viz-ink)]">{num(heat[at[0]][at[1]])}</b> page views</> : "Point at a square for its number"}</span>
+        <span>{at ? <>{DAYS[at[0]]} {hour(at[1])}: <b className="text-[var(--viz-ink)]">{num(heat[at[0]][at[1]])}</b> page views</> : null}</span>
         <span className="flex items-center gap-1 text-[var(--viz-muted)]">
           fewer
           {[1, 2, 3, 4, 5, 6].map((s) => <i key={s} className="inline-block h-2.5 w-2.5 rounded-[2px]" style={{ background: `var(--viz-seq-${s})` }} />)}

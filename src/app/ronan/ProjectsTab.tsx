@@ -63,10 +63,7 @@ export default function ProjectsTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-neutral-500">
-          Shown in &ldquo;What I do&rdquo;, in this order. Each one gets its own page.
-        </p>
+      <div className="flex items-center justify-end">
         <button type="button" className={buttonClass} onClick={() => setEditing("new")}>
           new project
         </button>
@@ -162,32 +159,29 @@ function ProjectEditor({
 
       <div className="grid gap-6 sm:grid-cols-2">
         <ImagePicker
-          label="Logo (the thumbnail)"
-          hint="Transparent edges are trimmed and corners rounded for you."
+          label="Logo"
           image={d.logo}
           round
           onPick={(f) => pickImage("logo", f)}
         />
         <ImagePicker
-          label="Title image (its name, in its own type)"
-          hint="Shown under the thumbnail and at the top of the project's page."
+          label="Title image"
           image={d.titleImage}
           onPick={(f) => pickImage("titleImage", f)}
         />
       </div>
 
       <label className="block space-y-2">
-        <span className="text-sm font-medium">What the logo shows</span>
+        <span className="text-sm font-medium">Logo alt text</span>
         <input
           className={inputClass}
           value={d.logoAlt}
           onChange={(e) => set("logoAlt", e.target.value)}
-          placeholder="For screen readers, e.g. “The Typeset app icon: a rainbow Roman numeral II”"
         />
       </label>
 
       <fieldset className="space-y-4">
-        <legend className="text-sm font-medium">How big should it be next to the others?</legend>
+        <legend className="text-sm font-medium">Size</legend>
         <div className="grid gap-4 sm:grid-cols-2">
           <Slider label="Thumbnail" value={d.size} min={2} max={30} step={0.1} onChange={(v) => set("size", v)} />
           <Slider label="Title" value={d.titleSize} min={0.5} max={4} step={0.05} onChange={(v) => set("titleSize", v)} />
@@ -196,7 +190,7 @@ function ProjectEditor({
       </fieldset>
 
       <MarkdownEditor
-        label="The project's page"
+        label="Page"
         value={d.body}
         onChange={(v) => set("body", v)}
         uploadImage={upload}
@@ -214,13 +208,11 @@ function ProjectEditor({
 
 function ImagePicker({
   label,
-  hint,
   image,
   round,
   onPick,
 }: {
   label: string;
-  hint: string;
   image: ImageRef;
   round?: boolean;
   onPick: (f: File | undefined) => void;
@@ -247,7 +239,6 @@ function ImagePicker({
         className="block w-full text-sm"
         onChange={(e) => { onPick(e.target.files?.[0]); e.target.value = ""; }}
       />
-      <p className="text-xs text-neutral-500">{hint}</p>
     </div>
   );
 }

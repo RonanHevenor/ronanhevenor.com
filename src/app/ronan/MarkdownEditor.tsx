@@ -196,7 +196,6 @@ export default function MarkdownEditor({ value, onChange, uploadImage, rows = 18
                 if (files.some((f) => f.type.startsWith("image/"))) { e.preventDefault(); addImages(files); }
               }}
               rows={rows}
-              placeholder="Write about the project. Markdown works; paste or drop images right in."
               className="block w-full resize-y bg-transparent px-3 py-2 font-mono text-sm outline-none"
             />
           </div>
@@ -209,9 +208,8 @@ export default function MarkdownEditor({ value, onChange, uploadImage, rows = 18
         )}
         <div className="flex items-center justify-between gap-3 border-t border-dashed border-neutral-300 px-3 py-1.5 text-xs text-neutral-500 dark:border-neutral-700">
           <button type="button" className="hover:underline" onClick={() => fileInput.current?.click()}>
-            {uploading ? `Uploading ${uploading} image${uploading > 1 ? "s" : ""}…` : "Paste, drop, or click to add images."}
+            {uploading ? `Uploading ${uploading} image${uploading > 1 ? "s" : ""}…` : "Add images"}
           </button>
-          <span>Markdown supported</span>
         </div>
       </div>
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
