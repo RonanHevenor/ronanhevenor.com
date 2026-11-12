@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
+import PlainLink from "./_components/PlainLink";
 import Surface from "./_components/Surface";
 import { getPhotos, getPosts, getSections } from "@/lib/data";
 import { renderMarkdown } from "@/lib/markdown";
@@ -128,6 +129,7 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }}
         />
+        <PlainLink />
         <Surface
           photos={photos}
           posts={renderedPosts}

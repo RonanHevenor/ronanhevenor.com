@@ -190,6 +190,7 @@ const RESERVED_SLUGS = new Set([
   "_next",
   "gallery",
   "img",
+  "html",
   "favicon.ico",
   "robots.txt",
   "sitemap.xml",
