@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Photo } from "@/lib/data";
+import ProjectScatter, { type ScatterPhase } from "./ProjectScatter";
 
 type SurfacePost = { slug: string; title: string; date: string; html: string };
 type SurfaceQuadrant = { title: string; slug: string };
@@ -247,6 +248,15 @@ function renderPost(post: SurfacePost) {
 }
 
 type Box = { top: string; left: string; width: string; height: string };
+
+// Which layout the "What I do" project thumbnails take (quadrant 1).
+function scatterPhase(expanded: number | null, hovered: number | null): ScatterPhase {
+  if (expanded === 1) return "expanded";
+  if (expanded !== null) return "idle"; // another quadrant is open; the thumbnails fade out
+  if (hovered === 1) return "hover";
+  if (hovered !== null) return "shrunk";
+  return "idle";
+}
 
 function idleBox(row: number, col: number): Box {
   return {
@@ -537,6 +547,17 @@ export default function Surface({
                 photos={photos}
                 onActivePhotoChange={setActivePhoto}
                 dim={hovered !== 0 && expanded !== 0}
+              />
+            )}
+            {i === 1 && (
+              <ProjectScatter
+                phase={scatterPhase(expanded, hovered)}
+                timing={layoutTiming}
+                hidden={beingPushed}
+                fadeStyle={{
+                  opacity: beingPushed ? 0 : 1,
+                  transition: `opacity ${TEXT_FADE_MS}ms ease`,
+                }}
               />
             )}
             <h1
