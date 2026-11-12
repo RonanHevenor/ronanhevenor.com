@@ -113,21 +113,23 @@ body {
 
 /* ---------- Intro (see _components/Intro.tsx) ----------
    Timeline, in seconds from first paint:
-     0-4.85   the video (public/intro/hint.mp4, ManimGL): "Click a quadrant to read that section"
-              written out from 0.25 to 4.25, then held (its last frame stays up after it ends)
-     5.0-5.6  the writing fades out
-     5.7-6.5  the black fades away, revealing the site
+     0-3.85   the video (public/intro/hint.mp4, or hint-vertical.mp4 on phones; ManimGL):
+              "Click a quadrant to read that section" written out from 0.25 to 3.25, then held
+              (its last frame stays up after it ends)
+     4.0-4.8  the words fade to black
+     4.8-5.2  black
+     5.2-6.0  the black fades away, revealing the site
    The bottom link fades in over 0.25-1.05, as the writing starts.
    Layout is also set inline on the elements (Intro.tsx), so it's right before this loads. */
 
 .intro {
-  animation: intro-out 0.8s ease-in-out 5.7s forwards;
+  animation: intro-out 0.8s ease-in-out 5.2s forwards;
 }
 .no-intro .intro {
   display: none !important; /* over the inline layout */
 }
 .intro-video {
-  animation: intro-out 0.6s ease-in-out 5s forwards;
+  animation: intro-out 0.8s ease-in-out 4s forwards;
 }
 
 /* the bottom link fades in with the writing (only while the intro plays) */

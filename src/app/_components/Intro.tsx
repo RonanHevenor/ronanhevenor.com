@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 
 // The intro, on every load: a black screen; "Click a quadrant to read that section" written
 // out (a video rendered with ManimGL, 3Blue1Brown's Manim, tools/intro/hint.py: each letter
-// outlined, then filled, left to right); it fades; the black fades away to the site. The
-// bottom link (PlainLink) fades in as the writing starts, and stays usable above it.
+// outlined, then filled, left to right; on phones one word per line, top to bottom); the words
+// fade to black; then the black fades away to the site. The bottom link (PlainLink) fades in as
+// the writing starts, and stays usable above it.
 //
 // It can't be clicked past. The timing is CSS (globals.css, "Intro") and the overlay is
 // server-rendered, so it starts on the first frame with no flash of the site underneath. Its
@@ -27,10 +28,13 @@ const LAYOUT = {
 
 // Written as raw HTML because React leaves `muted` out of server-rendered markup, and browsers
 // only autoplay muted video; this way it starts playing before any JavaScript has loaded.
-const VIDEO = `<video src="/intro/hint.mp4" autoplay muted playsinline preload="auto" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000"></video>`;
+// Phones held upright get the vertical version (one word per line, portrait); the browser picks
+// a <source> before downloading, so each device fetches only its own.
+const PHONE = "(orientation: portrait) and (max-width: 820px)";
+const VIDEO = `<video autoplay muted playsinline preload="auto" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000"><source src="/intro/hint-vertical.mp4" media="${PHONE}" type="video/mp4"><source src="/intro/hint.mp4" type="video/mp4"></video>`;
 
-// Just after the timeline ends (6.5 s, globals.css).
-const DONE_MS = 6600;
+// Just after the timeline ends (6.0 s, globals.css).
+const DONE_MS = 6100;
 
 export default function Intro() {
   const pathname = usePathname();
