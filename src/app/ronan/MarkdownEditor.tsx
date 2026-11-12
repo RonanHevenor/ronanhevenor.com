@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { renderMarkdown } from "@/lib/markdown";
+import { defaultImageSize, renderMarkdown } from "@/lib/markdown";
 import type { ImageRef } from "@/lib/projects";
 
 // A markdown editor in the manner of GitHub's comment box: Write / Preview tabs, a formatting
@@ -123,7 +123,7 @@ export default function MarkdownEditor({ value, onChange, uploadImage, rows = 18
           const { processImage } = await import("./process-image");
           const ref = await uploadImage(await processImage(file, { maxEdge: 2400 }));
           const alt = file.name.replace(/\.[^.]+$/, "").replace(/[[\]]/g, "");
-          replacement = `![${alt}](${ref.src})`;
+          replacement = `![${alt}](${ref.src}){${defaultImageSize(ref.w)}}`;
         } catch (err) {
           setError(`${file.name}: ${err instanceof Error ? err.message : "upload failed"}`);
         }

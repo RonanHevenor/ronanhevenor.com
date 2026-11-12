@@ -115,6 +115,20 @@ body {
   border-radius: 0.75rem;
   transform: translateX(-50%);
 }
+/* ![alt](src){210}: a share of the text column's width */
+.project-body img.sized {
+  width: var(--size);
+  max-width: calc(100vw - 3rem);
+}
+/* phones: every picture runs from one edge of the screen to the other */
+@media (max-width: 639px) {
+  .project-body img,
+  .project-body img.sized {
+    width: 100vw;
+    max-width: none;
+    border-radius: 0;
+  }
+}
 .markdown hr {
   border: none;
   border-top: 1px solid currentColor;

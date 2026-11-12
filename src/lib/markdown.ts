@@ -6,16 +6,36 @@ import { markedSmartypants } from "marked-smartypants";
 // cannot inject <script>, <iframe>, event handlers, etc. Only the standard
 // markdown features (paragraphs, emphasis, links, lists, code, headings) are
 // rendered.
+// An image may carry a size right after it: ![alt](src){210} makes it 210% of the text column's
+// width (on wide screens; on phones every picture spans the screen).
+const SIZED_IMAGE = /^!\[([^\]]*)\]\(\s*<?([^\s)>]+)>?(?:\s+"([^"]*)")?\s*\)\{\s*(\d{1,3})\s*%?\s*\}/;
+
 const md = new Marked(markedSmartypants(), {
+  extensions: [
+    {
+      name: "sizedImage",
+      level: "inline",
+      start: (src: string) => src.indexOf("!["),
+      tokenizer(src: string) {
+        const m = SIZED_IMAGE.exec(src);
+        if (!m) return undefined;
+        return { type: "sizedImage", raw: m[0], text: m[1], href: m[2], title: m[3] ?? null, size: Number(m[4]) };
+      },
+      renderer(token) {
+        const { href, text, title, size } = token as unknown as { href: string; text: string; title: string | null; size: number };
+        const pct = Math.max(10, Math.min(400, size));
+        return imageHtml(href, text, title, ` class="sized" style="--size:${pct}%"`);
+      },
+    },
+  ],
+}, {
   gfm: true,
   breaks: true,
   renderer: {
     html: () => "",
     // Images (e.g. pictures pasted into a project write-up): only site paths or http(s) URLs.
     image({ href, title, text }) {
-      if (typeof href !== "string" || !isSafeUrl(href)) return escapeAttr(text);
-      const titleAttr = title ? ` title="${escapeAttr(title)}"` : "";
-      return `<img src="${escapeAttr(href)}" alt="${escapeAttr(text)}"${titleAttr} loading="lazy">`;
+      return imageHtml(href, text, title);
     },
     link({ href, title, tokens }) {
       const text = this.parser.parseInline(tokens);
@@ -25,6 +45,18 @@ const md = new Marked(markedSmartypants(), {
     },
   },
 });
+
+// The size an image is given when it's added to a write-up: as wide as it shows without one
+// (its own width, up to 64rem) as a share of the text column (624px of text on a wide screen).
+export function defaultImageSize(widthPx: number): number {
+  return Math.max(10, Math.round((Math.min(widthPx, 1024) / 624) * 100));
+}
+
+function imageHtml(href: unknown, text: string, title: string | null | undefined, extra = ""): string {
+  if (typeof href !== "string" || !isSafeUrl(href)) return escapeAttr(text);
+  const titleAttr = title ? ` title="${escapeAttr(title)}"` : "";
+  return `<img src="${escapeAttr(href)}" alt="${escapeAttr(text)}"${titleAttr}${extra} loading="lazy">`;
+}
 
 // Web links, mail links, and paths on this site; never javascript:, data: and the like.
 function isSafeUrl(url: string): boolean {
