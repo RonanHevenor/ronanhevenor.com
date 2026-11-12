@@ -5,11 +5,13 @@
 //   around a wordmark), so what you see is what gets sized and rounded;
 // - scales it to at most `maxEdge` px on its long side (SVGs are drawn at that size, so they
 //   come out sharp, and arrive as an image rather than as SVG markup);
+// - cuts the drop shadow off a window screenshot (macOS bakes it into the file as a soft,
+//   half-transparent margin), leaving just the window;
 // - saves PNG if any pixel is transparent, otherwise JPEG.
 
 export async function processImage(
   file: File,
-  { maxEdge = 2400, trim = false }: { maxEdge?: number; trim?: boolean } = {},
+  { maxEdge = 2400, trim: trimMargins = false }: { maxEdge?: number; trim?: boolean } = {},
 ): Promise<File> {
   const img = await loadImage(file);
   const isSvg = file.type === "image/svg+xml" || /\.svg$/i.test(file.name);
@@ -35,6 +37,16 @@ export async function processImage(
   }
 
   let out = canvas;
+  let trim = trimMargins;
+  if (hasAlpha) {
+    const win = unshadow(ctx, data, w, h);
+    if (win) {
+      out = win;
+      trim = false;
+      data = win.getContext("2d")!.getImageData(0, 0, win.width, win.height).data;
+      hasAlpha = data.some((v, i) => i % 4 === 3 && v < 255);
+    }
+  }
   if (trim && hasAlpha) {
     const box = opaqueBounds(data, w, h);
     if (box && (box.w < w || box.h < h)) {
@@ -69,12 +81,34 @@ function loadImage(file: File): Promise<HTMLImageElement> {
   });
 }
 
-// The smallest box holding every pixel that isn't (almost) fully transparent.
-function opaqueBounds(data: Uint8ClampedArray, w: number, h: number) {
+// A window screenshot: a solid rectangle (bar its rounded corners) floating in a soft shadow.
+// Returns just the window, with everything that isn't solid window cleared, or null when the
+// image isn't one (a logo or anything else with real transparency is left alone).
+function unshadow(ctx: CanvasRenderingContext2D, data: Uint8ClampedArray, w: number, h: number) {
+  const SOLID = 250;
+  const box = opaqueBounds(data, w, h, SOLID);
+  if (!box || (box.w === w && box.h === h)) return null;
+  let solid = 0;
+  for (let y = box.y; y < box.y + box.h; y++) {
+    for (let x = box.x; x < box.x + box.w; x++) if (data[(y * w + x) * 4 + 3] >= SOLID) solid++;
+  }
+  // only the four rounded corners may be missing
+  if (solid < box.w * box.h * 0.98) return null;
+  const crop = ctx.getImageData(box.x, box.y, box.w, box.h);
+  for (let i = 3; i < crop.data.length; i += 4) if (crop.data[i] < SOLID) crop.data[i] = 0;
+  const out = document.createElement("canvas");
+  out.width = box.w;
+  out.height = box.h;
+  out.getContext("2d")!.putImageData(crop, 0, 0);
+  return out;
+}
+
+// The smallest box holding every pixel more opaque than `min` (default: not almost invisible).
+function opaqueBounds(data: Uint8ClampedArray, w: number, h: number, min = 9) {
   let top = h, left = w, right = -1, bottom = -1;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      if (data[(y * w + x) * 4 + 3] > 8) {
+      if (data[(y * w + x) * 4 + 3] >= min) {
         if (x < left) left = x;
         if (x > right) right = x;
         if (y < top) top = y;

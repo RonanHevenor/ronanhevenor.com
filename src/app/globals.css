@@ -112,6 +112,7 @@ body {
   width: auto;
   max-width: min(calc(100vw - 3rem), 64rem);
   height: auto;
+  border-radius: 0.75rem;
   transform: translateX(-50%);
 }
 .markdown hr {
