@@ -33,19 +33,19 @@ type Project = {
 const PROJECTS: Project[] = [
   {
     title: "Typeset",
-    src: "/projects/typeset.png", w: 512, h: 512, base: 5.5, cap: 9,
+    src: "/projects/typeset.png", w: 512, h: 512, base: 7, cap: 11.5,
     // "Typeset" in SF Pro Black filled with the app icon's rainbow
     label: { kind: "image", src: "/projects/typeset-wordmark.png", w: 1548, h: 360 },
   },
   {
     title: "poly.rpi.edu",
-    src: "/projects/poly-site.png", w: 2880, h: 1920, base: 11, cap: 18,
+    src: "/projects/poly-site.png", w: 2880, h: 1920, base: 13.5, cap: 22,
     // the site's wordmark in the paper's red, #D6001C
     label: { kind: "image", src: "/projects/poly-rpi-edu.svg", w: 1121, h: 200 },
   },
   {
     title: "Sentinel",
-    src: "/projects/sentinel-leds.jpg", w: 640, h: 480, base: 7.5, cap: 12.5, rounded: true,
+    src: "/projects/sentinel-leds.jpg", w: 640, h: 480, base: 9.5, cap: 15.5, rounded: true,
     // the Sentinel dashboard's header: light weight, capitals, letter-spacing 4px at 32px
     label: {
       kind: "text",
@@ -73,10 +73,10 @@ const VW_BOOST: Record<ScatterPhase, number> = { idle: 1, shrunk: 1, hover: 1, e
 // Label height (wordmark images) and font size (text labels); scales with the screen so labels
 // don't collide on phones.
 const LABEL: Record<ScatterPhase, string> = {
-  idle: "clamp(0.5rem, 0.85vw, 0.9rem)",
-  shrunk: "clamp(0.45rem, 0.8vw, 0.85rem)",
-  hover: "clamp(0.55rem, 0.95vw, 1rem)",
-  expanded: "clamp(0.9rem, 1.5vw, 1.5rem)",
+  idle: "clamp(0.5rem, 1vw, 1.05rem)",
+  shrunk: "clamp(0.45rem, 0.9vw, 0.95rem)",
+  hover: "clamp(0.55rem, 1.1vw, 1.15rem)",
+  expanded: "clamp(0.95rem, 1.7vw, 1.75rem)",
 };
 // Vertical centre for the row, and how far the odd one out and the pair split apart from it.
 const Y_MID: Record<ScatterPhase, number> = { idle: 64, shrunk: 64, hover: 63, expanded: 56 };
