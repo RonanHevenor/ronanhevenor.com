@@ -2,8 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { memo, useEffect, useState, useSyncExternalStore } from "react";
+import { INTRO_SEEN_COOKIE, INTRO_SEEN_MAX_AGE } from "@/lib/intro";
 
-// The intro, on every load: a black screen; "Click a quadrant to read that section." written
+// The intro, on someone's first visit ever (then a cookie keeps it off; src/lib/intro.ts): a
+// black screen; "Click a quadrant to read that section." written
 // out, faded, then "Click again to go back." written out (a video rendered with ManimGL,
 // 3Blue1Brown's Manim, tools/intro/hint.py: each letter outlined, then filled, left to right;
 // a portrait version for phones); the words fade to black; then the black fades away to the
@@ -90,6 +92,9 @@ export default function Intro() {
       // phone source is never tried; that's not a failure)
       if (video && (video.error || video.networkState === HTMLMediaElement.NETWORK_NO_SOURCE)) fallBack();
     };
+    // It's playing: they'll know how to use the site from now on, so no intro on later visits
+    // (the layout checks this cookie).
+    document.cookie = `${INTRO_SEEN_COOKIE}=1; Max-Age=${INTRO_SEEN_MAX_AGE}; Path=/; SameSite=Lax`;
     const backstop = setTimeout(end, LONGEST_MS);
     if (video) {
       if (video.ended) end();

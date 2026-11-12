@@ -4,7 +4,9 @@ import "./globals.css";
 import Intro, { INTRO_GATE } from "./_components/Intro";
 import PlainLink from "./_components/PlainLink";
 import Surface from "./_components/Surface";
+import { cookies } from "next/headers";
 import { getPhotos, getPosts, getProjects, getSections } from "@/lib/data";
+import { INTRO_SEEN_COOKIE } from "@/lib/intro";
 import { renderMarkdown } from "@/lib/markdown";
 import { SITE } from "@/lib/seo";
 
@@ -83,6 +85,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The intro only plays on a first visit ever; after that, leave it out entirely.
+  const introSeen = (await cookies()).has(INTRO_SEEN_COOKIE);
   const [photos, posts, sections, projects] = await Promise.all([
     getPhotos(),
     getPosts(),
@@ -126,7 +130,7 @@ export default async function RootLayout({
       lang="en"
       // the intro's gate script (below) may add "no-intro" before React hydrates
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${newsreader.variable} h-full antialiased${introSeen ? " no-intro" : ""}`}
     >
       <head>
         {/* before first paint: skip the intro on a repeat visit or with reduced motion */}
@@ -142,7 +146,7 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }}
         />
         <PlainLink />
-        <Intro />
+        {!introSeen && <Intro />}
         <Surface
           photos={photos}
           posts={renderedPosts}
