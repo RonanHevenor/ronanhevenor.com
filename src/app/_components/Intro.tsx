@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { memo, useEffect, useState, useSyncExternalStore } from "react";
 import { INTRO_SEEN_COOKIE, INTRO_SEEN_MAX_AGE } from "@/lib/intro";
 
-// The intro, on someone's first visit ever (then a cookie keeps it off; src/lib/intro.ts): a
+// The intro, on a first visit (then a cookie keeps it off for a week; src/lib/intro.ts): a
 // black screen; "Click a quadrant to read that section." written
 // out, faded, then "Click again to go back." written out (a video rendered with ManimGL,
 // 3Blue1Brown's Manim, tools/intro/hint.py: each letter outlined, then filled, left to right;
