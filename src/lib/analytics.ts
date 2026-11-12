@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { AUTH_COOKIE_NAME, verifyToken } from "./auth";
+import { AUTH_COOKIE_NAME, SHIELD_COOKIE_NAME, verifyToken } from "./auth";
 
 // The site's own analytics: anonymous counts, kept on this server, sent nowhere else.
 //
@@ -75,6 +75,7 @@ export function fromHeaders(h: Headers): Pick<AnalyticsEvent, "c" | "d" | "b" | 
   const ua = h.get("user-agent") ?? "";
   if (!ua || BOT.test(ua)) return null;
   if (h.get("sec-gpc") === "1" || h.get("dnt") === "1") return null;
+  if (cookie(h.get("cookie"), SHIELD_COOKIE_NAME)) return null;
   const session = cookie(h.get("cookie"), AUTH_COOKIE_NAME);
   if (session && verifyToken(session)) return null;
   const c = (h.get("cf-ipcountry") ?? "").toUpperCase();

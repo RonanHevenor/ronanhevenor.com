@@ -104,6 +104,16 @@ body {
   padding-left: 1em;
   opacity: 0.8;
 }
+/* pictures in a project's write-up spread wider than its text */
+.project-body img {
+  position: relative;
+  left: 50%;
+  display: block;
+  width: auto;
+  max-width: min(calc(100vw - 3rem), 64rem);
+  height: auto;
+  transform: translateX(-50%);
+}
 .markdown hr {
   border: none;
   border-top: 1px solid currentColor;

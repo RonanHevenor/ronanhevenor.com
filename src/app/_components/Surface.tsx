@@ -246,7 +246,7 @@ function renderProject(project: SurfaceProject) {
     // on wide screens the column sits clear of the quadrant's title, so the title image moves
     // up level with it, near the top of the screen
     <article className="stable-col is-centered space-y-6 px-6 pb-16 text-xl leading-relaxed xl:-mt-12">
-      <h2>
+      <h2 className="flex justify-center">
         <Image
           src={project.titleImage.src}
           alt={project.title}
@@ -258,7 +258,7 @@ function renderProject(project: SurfaceProject) {
         />
       </h2>
       {project.html && (
-        <div className="markdown" dangerouslySetInnerHTML={{ __html: project.html }} />
+        <div className="markdown project-body" dangerouslySetInnerHTML={{ __html: project.html }} />
       )}
     </article>
   );

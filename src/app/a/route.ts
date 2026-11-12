@@ -1,4 +1,5 @@
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { SHIELD_COOKIE, SHIELD_COOKIE_NAME } from "@/lib/auth";
 import { cleanPath, fromHeaders, record, refHost, type AnalyticsEvent } from "@/lib/analytics";
 
 // Where the site's pages report what was viewed (src/app/_components/Tracker.tsx). See
@@ -14,6 +15,12 @@ export async function POST(req: NextRequest) {
   // only this site's own pages
   const origin = req.headers.get("origin");
   if (origin && new URL(origin).host !== req.headers.get("host")) return done;
+  // Ronan's own browsers: not counted, and the cookie that says so is kept fresh
+  if (req.cookies.has(SHIELD_COOKIE_NAME)) {
+    const res = new NextResponse(null, { status: 204 });
+    res.cookies.set(SHIELD_COOKIE_NAME, "1", SHIELD_COOKIE);
+    return res;
+  }
   const who = fromHeaders(req.headers);
   if (!who) return done;
 

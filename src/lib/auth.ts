@@ -3,6 +3,18 @@ import { cookies } from "next/headers";
 
 export const AUTH_COOKIE_NAME = "ronan_session";
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+// Set on Ronan's browsers when he signs in: the analytics leave them out. Browsers cap a
+// cookie's life at 400 days, so it is renewed whenever a page of the site reports a view
+// (src/app/a/route.ts) and in practice never runs out.
+export const SHIELD_COOKIE_NAME = "ronan_not_counted";
+export const SHIELD_COOKIE = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: 400 * 24 * 60 * 60,
+};
 const PBKDF2_ITERATIONS = 600_000;
 const PBKDF2_KEY_LEN = 32;
 const HASH_ALGO = "sha256";
@@ -105,6 +117,7 @@ export async function createSession(): Promise<void> {
     path: "/",
     maxAge: Math.floor(SESSION_DURATION_MS / 1000),
   });
+  c.set(SHIELD_COOKIE_NAME, "1", SHIELD_COOKIE);
 }
 
 export async function destroySession(): Promise<void> {
