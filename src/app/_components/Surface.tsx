@@ -86,7 +86,7 @@ function Slideshow({
         style={{ opacity: aActive ? 1 : 0, transition: fade }}
       >
         <Image
-          src={`/gallery/${photos[a].src}`}
+          src={`/img/${photos[a].src}`}
           alt=""
           fill
           sizes="(min-width: 768px) 55vw, 100vw"
@@ -100,7 +100,7 @@ function Slideshow({
           style={{ opacity: aActive ? 0 : 1, transition: fade }}
         >
           <Image
-            src={`/gallery/${photos[b].src}`}
+            src={`/img/${photos[b].src}`}
             alt=""
             fill
             sizes="(min-width: 768px) 55vw, 100vw"
@@ -384,7 +384,7 @@ export default function Surface({
       return;
     }
     let cancelled = false;
-    sampleBrightness(`/gallery/${src}`).then((b) => {
+    sampleBrightness(`/img/${src}`).then((b) => {
       cache.set(src, b);
       if (!cancelled) setPhotoBrightness(b);
     });

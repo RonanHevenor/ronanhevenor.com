@@ -198,7 +198,7 @@ function PhotosTab({
             <li key={p.src} className="relative group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`/gallery/${p.src}`}
+                src={`/img/${p.src}`}
                 alt=""
                 className="w-full h-32 object-cover bg-neutral-200 dark:bg-neutral-800"
               />
