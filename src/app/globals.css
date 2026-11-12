@@ -141,6 +141,9 @@ html:not(.no-intro) .intro-link {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+/* opacity only: Safari can switch an animated `visibility` partway through the fade, which makes
+   the black (or the words) vanish abruptly instead of dissolving. The overlay takes itself out of
+   the page once its fade ends (Intro.tsx). */
 @keyframes intro-out {
-  to { opacity: 0; visibility: hidden; }
+  to { opacity: 0; }
 }
