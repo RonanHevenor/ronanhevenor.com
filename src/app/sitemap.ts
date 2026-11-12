@@ -1,13 +1,14 @@
 import type { MetadataRoute } from "next";
-import { getPosts, getSections } from "@/lib/data";
+import { getPosts, getProjects, getSections } from "@/lib/data";
 import { SITE } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [{ quadrants }, posts] = await Promise.all([
+  const [{ quadrants }, posts, projects] = await Promise.all([
     getSections(),
     getPosts(),
+    getProjects(),
   ]);
   const now = new Date();
 
@@ -27,6 +28,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.7,
     });
+  }
+
+  const workSlug = quadrants[1]?.slug;
+  if (workSlug) {
+    for (const p of projects) {
+      entries.push({
+        url: `${SITE.url}/${workSlug}/${p.slug}`,
+        lastModified: now,
+        changeFrequency: "monthly",
+        priority: 0.6,
+      });
+    }
   }
 
   const blogSlug = quadrants[3]?.slug;

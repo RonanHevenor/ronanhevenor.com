@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Photo, Post, Quadrant, Sections } from "@/lib/data";
+import type { Project } from "@/lib/projects";
 import {
   createPost,
   deletePhoto,
@@ -14,6 +15,7 @@ import {
   uploadPhotos,
 } from "./actions";
 import { shrinkImage } from "./shrink-image";
+import ProjectsTab from "./ProjectsTab";
 
 const INITIAL_QUADRANTS: Quadrant[] = [
   { title: "", slug: "" },
@@ -27,8 +29,9 @@ const inputClass =
 
 export default function RonanAdmin() {
   const [tab, setTab] = useState<
-    "photos" | "posts" | "sections" | "quadrants"
+    "photos" | "posts" | "projects" | "sections" | "quadrants"
   >("photos");
+  const [projects, setProjects] = useState<Project[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [sections, setSections] = useState<Sections>({
@@ -43,6 +46,7 @@ export default function RonanAdmin() {
     setPhotos(c.photos);
     setPosts(c.posts);
     setSections(c.sections);
+    setProjects(c.projects);
     setLoaded(true);
   }
 
@@ -53,6 +57,7 @@ export default function RonanAdmin() {
   const tabs = [
     { k: "photos" as const, count: photos.length },
     { k: "posts" as const, count: posts.length },
+    { k: "projects" as const, count: projects.length },
     { k: "sections" as const, count: null },
     { k: "quadrants" as const, count: null },
   ];
@@ -97,6 +102,8 @@ export default function RonanAdmin() {
           <PhotosTab photos={photos} refresh={refresh} />
         ) : tab === "posts" ? (
           <PostsTab posts={posts} refresh={refresh} />
+        ) : tab === "projects" ? (
+          <ProjectsTab projects={projects} refresh={refresh} />
         ) : tab === "sections" ? (
           <SectionsTab sections={sections} refresh={refresh} />
         ) : (

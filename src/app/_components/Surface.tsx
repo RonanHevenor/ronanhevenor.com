@@ -6,8 +6,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { Photo } from "@/lib/data";
 import ProjectScatter, { type ScatterPhase } from "./ProjectScatter";
+import type { Project } from "@/lib/projects";
 
 type SurfacePost = { slug: string; title: string; date: string; html: string };
+// A project with its write-up already rendered (and sanitized) server-side.
+export type SurfaceProject = Omit<Project, "body"> & { html: string };
 type SurfaceQuadrant = { title: string; slug: string };
 type SurfaceSections = {
   whatido: string;
@@ -234,6 +237,50 @@ function pathToIndex(
   return null;
 }
 
+// A project's page, inside the opened "What I do" quadrant: its title image, links to the code
+// and the live site, then the write-up (html pre-sanitized by renderMarkdown() server-side).
+function renderProject(project: SurfaceProject, listPath: string) {
+  return (
+    <article className="stable-col is-centered space-y-6 px-6 pb-16 text-xl leading-relaxed">
+      <Link href={listPath} className="text-sm text-neutral-500 hover:underline">
+        ← All projects
+      </Link>
+      <header className="space-y-4">
+        <h2>
+          <Image
+            src={project.titleImage.src}
+            alt={project.title}
+            width={project.titleImage.w}
+            height={project.titleImage.h}
+            unoptimized // wordmarks are small and one may be an SVG; serve as-is
+            priority
+            className="h-auto max-h-24 w-auto max-w-full"
+          />
+        </h2>
+        {(project.repo || project.href) && (
+          <p className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+            {project.repo && (
+              <a href={`https://github.com/${project.repo}`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-blue-600">
+                Code on GitHub ↗
+              </a>
+            )}
+            {project.href && (
+              <a href={project.href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-blue-600">
+                Live site ↗
+              </a>
+            )}
+          </p>
+        )}
+      </header>
+      {project.html ? (
+        <div className="markdown" dangerouslySetInnerHTML={{ __html: project.html }} />
+      ) : (
+        <p className="text-neutral-500">Nothing written about this one yet.</p>
+      )}
+    </article>
+  );
+}
+
 // Post html is pre-sanitized by renderMarkdown() server-side.
 function renderPost(post: SurfacePost) {
   return (
@@ -365,15 +412,26 @@ export default function Surface({
   photos,
   posts,
   sections,
+  projects,
 }: {
   photos: Photo[];
   posts: SurfacePost[];
   sections: SurfaceSections;
+  projects: SurfaceProject[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const expanded = pathToIndex(pathname, sections.quadrants);
   const blogSlug = sections.quadrants[3].slug;
+  // "What I do" lists the projects; each has a page at /<what-i-do>/<project>
+  const projectsPath = `/${sections.quadrants[1].slug}`;
+  const projectSlug =
+    expanded === 1 && pathname.startsWith(projectsPath + "/")
+      ? pathname.slice(projectsPath.length + 1)
+      : null;
+  const currentProject = projectSlug
+    ? projects.find((p) => p.slug === projectSlug) ?? null
+    : null;
   const [hovered, setHovered] = useState<number | null>(null);
   const [suppressHover, setSuppressHover] = useState(false);
   const [blogPhase, setBlogPhase] = useState<BlogPhase>("idle");
@@ -419,7 +477,8 @@ export default function Surface({
     for (const q of quadrants) router.prefetch(q.path);
     router.prefetch("/");
     for (const p of posts) router.prefetch(`/${blogSlug}/${p.slug}`);
-  }, [router, posts, quadrants, blogSlug]);
+    for (const p of projects) router.prefetch(`${projectsPath}/${p.slug}`);
+  }, [router, posts, quadrants, blogSlug, projects, projectsPath]);
 
   useEffect(() => {
     if (expanded !== null) setHovered(null);
@@ -466,12 +525,13 @@ export default function Surface({
 
   useEffect(() => {
     if (expanded === null) return;
+    // from a project's page, Escape goes back to the list of projects
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") router.push("/");
+      if (e.key === "Escape") router.push(projectSlug ? projectsPath : "/");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [expanded, router]);
+  }, [expanded, router, projectSlug, projectsPath]);
 
   if (pathname.startsWith("/ronan")) return null;
 
@@ -486,7 +546,7 @@ export default function Surface({
     if ((e.target as HTMLElement).closest("a")) return;
     if (i === 0) return;
     if (expanded !== null) {
-      router.push("/");
+      router.push(projectSlug ? projectsPath : "/");
       return;
     }
     router.push(quadrants[i].path);
@@ -554,12 +614,15 @@ export default function Surface({
             )}
             {i === 1 && (
               <ProjectScatter
+                projects={projects}
+                basePath={projectsPath}
                 phase={scatterPhase(expanded, hovered)}
                 timing={layoutTiming}
                 box={box}
-                hidden={beingPushed}
+                // out of the way while another quadrant, or one of the project pages, is open
+                hidden={beingPushed || !!projectSlug}
                 fadeStyle={{
-                  opacity: beingPushed ? 0 : 1,
+                  opacity: beingPushed || projectSlug ? 0 : 1,
                   transition: `opacity ${TEXT_FADE_MS}ms ease`,
                 }}
               />
@@ -604,7 +667,13 @@ export default function Surface({
                 transitionDelay: `${q.title.length * TEXT_CHAR_STEP_MS}ms`,
               }}
             >
-              {i === 3 && currentPost ? renderPost(currentPost) : q.body}
+              {i === 3 && currentPost
+                ? renderPost(currentPost)
+                : i === 1 && projectSlug
+                  ? currentProject
+                    ? renderProject(currentProject, projectsPath)
+                    : <p className="stable-col is-centered px-6 text-xl text-neutral-500">No such project.</p>
+                  : q.body}
             </div>
           </section>
         );

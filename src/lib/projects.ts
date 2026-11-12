@@ -1,66 +1,63 @@
-// The projects shown in "What I do": thumbnails on the main site (ProjectScatter) and a plain
-// list on /html. One list so the two never disagree.
+// Projects shown in "What I do": thumbnails on the main site (ProjectScatter), a page each at
+// /<what-i-do>/<slug>, and plain versions under /html. Edited in the admin (projects tab) and
+// stored in data/projects.json; until that file exists, DEFAULT_PROJECTS is used.
+//
+// Shared by server and client code, so nothing here touches the filesystem.
 
-import type { CSSProperties } from "react";
-
-// Each label is set in the project's own type: an image of its wordmark, or text styled like it.
-export type Label =
-  | { kind: "image"; src: string; w: number; h: number }
-  | { kind: "text"; text: string; style: CSSProperties };
+export type ImageRef = { src: string; w: number; h: number };
 
 export type Project = {
+  slug: string;
   title: string;
-  alt: string; // what the thumbnail shows, for screen readers and the plain page
-  href?: string; // where the project lives, if it's public
-  repo: string; // its GitHub repository, "owner/name"; the thumbnail links there
-  src: string;
-  w: number; // intrinsic size, for the aspect ratio
-  h: number;
-  base: number; // preferred width, in vw (capped by `cap` vh); shrunk further if it doesn't fit
-  cap: number;
-  radius?: number; // corner radius as a fraction of the width, so it scales with the thumbnail
-  labelScale?: number; // label size relative to the others
-  inset?: number; // transparent margin below the visible image, as a fraction of its width
-  label: Label;
+  logo: ImageRef; // the thumbnail; transparent margins trimmed on upload, corners rounded in CSS
+  logoAlt: string; // what the logo shows, for screen readers and the plain version
+  titleImage: ImageRef; // the project's name in its own type: under the thumbnail, top of its page
+  size: number; // how big the thumbnail is relative to the others (its preferred width, in vw)
+  titleSize: number; // how big the title image is relative to the others' (1 = the base label size)
+  repo?: string; // GitHub "owner/name"
+  href?: string; // live site
+  body: string; // markdown: the project's page
 };
 
-export const PROJECTS: Project[] = [
+// The thumbnail's corner radius, as a fraction of its width.
+export const CORNER_RADIUS = 0.055;
+// A thumbnail's height cap, in vh, is its size times this (keeps big screens in proportion).
+export const SIZE_TO_VH_CAP = 1.63;
+
+export const DEFAULT_PROJECTS: Project[] = [
   {
+    slug: "typeset",
     title: "Typeset",
+    logo: { src: "/projects/typeset-tile.png", w: 413, h: 413 },
+    logoAlt: "The Typeset app icon: a Roman numeral II in rainbow colours on a black tile",
+    titleImage: { src: "/projects/typeset-wordmark.png", w: 1548, h: 360 },
+    size: 5.6,
+    titleSize: 1.6,
     repo: "RonanHevenor/typeset",
-    alt: "The Typeset app icon: a Roman numeral II in rainbow colours on a black tile",
-    src: "/projects/typeset.png", w: 512, h: 512, base: 7, cap: 11.5,
-    // "Typeset" in SF Pro Black filled with the app icon's rainbow
-    labelScale: 1.6,
-    inset: 49 / 512, // the icon's tile stops short of the image's edges (standard macOS icon padding)
-    label: { kind: "image", src: "/projects/typeset-wordmark.png", w: 1548, h: 360 },
+    body: "",
   },
   {
+    slug: "poly-rpi-edu",
     title: "poly.rpi.edu",
+    logo: { src: "/projects/poly-site.png", w: 2880, h: 1920 },
+    logoAlt: "The front page of poly.rpi.edu, The Polytechnic's website, in dark mode",
+    titleImage: { src: "/projects/poly-rpi-edu.svg", w: 1121, h: 200 },
+    size: 13.5,
+    titleSize: 2,
     repo: "thepoly/polymer",
-    alt: "The front page of poly.rpi.edu, The Polytechnic's website, in dark mode",
     href: "https://poly.rpi.edu",
-    src: "/projects/poly-site.png", w: 2880, h: 1920, base: 13.5, cap: 22, radius: 0.055,
-    // the site's wordmark in the paper's red, #D6001C; a long, light wordmark, so set larger
-    labelScale: 2,
-    label: { kind: "image", src: "/projects/poly-rpi-edu.svg", w: 1121, h: 200 },
+    body: "",
   },
   {
+    slug: "sentinel",
     title: "Sentinel",
+    logo: { src: "/projects/sentinel-leds.jpg", w: 640, h: 480 },
+    logoAlt:
+      "Sentinel's camera view of a heating controller's indicator lights, with green and red detection boxes",
+    titleImage: { src: "/projects/sentinel-title.png", w: 1030, h: 154 },
+    size: 9.5,
+    titleSize: 1.9,
     repo: "RonanHevenor/sentinel",
-    alt: "Sentinel's camera view of a heating controller's indicator lights, with green and red detection boxes",
-    src: "/projects/sentinel-leds.jpg", w: 640, h: 480, base: 9.5, cap: 15.5, radius: 0.055,
-    // the Sentinel dashboard's header: light weight, capitals, letter-spacing 4px at 32px
-    labelScale: 1.9,
-    label: {
-      kind: "text",
-      text: "SENTINEL",
-      style: {
-        fontFamily: "'Segoe UI', system-ui, sans-serif",
-        fontWeight: 300,
-        letterSpacing: "0.125em",
-        marginRight: "-0.125em", // the spacing after the last letter shouldn't push it off centre
-      },
-    },
+    body: "",
   },
 ];

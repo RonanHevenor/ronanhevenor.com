@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Newsreader } from "next/font/google";
 import "./globals.css";
 import PlainLink from "./_components/PlainLink";
 import Surface from "./_components/Surface";
-import { getPhotos, getPosts, getSections } from "@/lib/data";
+import { getPhotos, getPosts, getProjects, getSections } from "@/lib/data";
 import { renderMarkdown } from "@/lib/markdown";
 import { SITE } from "@/lib/seo";
 
@@ -82,11 +82,16 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [photos, posts, sections] = await Promise.all([
+  const [photos, posts, sections, projects] = await Promise.all([
     getPhotos(),
     getPosts(),
     getSections(),
+    getProjects(),
   ]);
+  const renderedProjects = projects.map(({ body, ...p }) => ({
+    ...p,
+    html: renderMarkdown(body),
+  }));
   const renderedPosts = posts.map((p) => ({
     slug: p.slug,
     title: p.title,
@@ -134,6 +139,7 @@ export default async function RootLayout({
           photos={photos}
           posts={renderedPosts}
           sections={renderedSections}
+          projects={renderedProjects}
         />
         {children}
       </body>

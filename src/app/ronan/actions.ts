@@ -11,11 +11,15 @@ import {
   savePosts,
   getSections,
   saveSections,
+  getProjects,
+  saveProjects,
+  UPLOADS_DIR,
   type Photo,
   type Post,
   type Quadrant,
   type Sections,
 } from "@/lib/data";
+import type { ImageRef, Project } from "@/lib/projects";
 import { readImageDims } from "@/lib/image-dims";
 import { destroySession, requireAuth } from "@/lib/auth";
 
@@ -190,7 +194,10 @@ const RESERVED_SLUGS = new Set([
   "_next",
   "gallery",
   "img",
+  "u",
   "html",
+  "uploads",
+  "projects",
   "favicon.ico",
   "robots.txt",
   "sitemap.xml",
@@ -251,14 +258,110 @@ export async function listContent(): Promise<{
   photos: Photo[];
   posts: Post[];
   sections: Sections;
+  projects: Project[];
 }> {
   await requireAuth();
-  const [photos, posts, sections] = await Promise.all([
+  const [photos, posts, sections, projects] = await Promise.all([
     getPhotos(),
     getPosts(),
     getSections(),
+    getProjects(),
   ]);
-  return { photos, posts, sections };
+  return { photos, posts, sections, projects };
+}
+
+// --- Projects ("What I do") ---
+
+// One image for a project: a logo, a title image, or a picture in a write-up. The browser has
+// already trimmed, resized and re-encoded it (no metadata); this checks it really is an image
+// and stores it under a fresh name in public/uploads/, served by /u/<name>.
+export async function uploadProjectImage(formData: FormData): Promise<ImageRef> {
+  await requireAuth();
+  const entry = formData.get("file");
+  if (!(entry instanceof File) || entry.size === 0) throw new Error("no file");
+  if (entry.size > 20 * 1024 * 1024) throw new Error("image too large");
+  const buf = Buffer.from(await entry.arrayBuffer());
+  const dims = readImageDims(buf);
+  if (!dims) throw new Error("not a JPEG, PNG or WebP image");
+  const ext = buf[0] === 0xff ? ".jpg" : buf[0] === 0x89 ? ".png" : ".webp";
+  const stem = sanitizeFilename(entry.name.replace(/\.[^.]*$/, "")).slice(0, 60) || "image";
+  await fs.mkdir(UPLOADS_DIR, { recursive: true });
+  // a random suffix so names never collide and a replaced image never reuses a cached URL
+  const name = `${stem}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+  await fs.writeFile(path.join(UPLOADS_DIR, name), buf);
+  return { src: `/u/${name}`, w: dims.w, h: dims.h };
+}
+
+const IMAGE_SRC_RE = /^\/(u|projects)\/[A-Za-z0-9._-]+$/;
+const REPO_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+
+function checkImage(img: ImageRef | undefined, what: string): ImageRef {
+  if (!img || !IMAGE_SRC_RE.test(img.src) || !(img.w > 0) || !(img.h > 0)) {
+    throw new Error(`${what} is missing`);
+  }
+  return { src: img.src, w: Math.round(img.w), h: Math.round(img.h) };
+}
+
+const clamp = (n: number, lo: number, hi: number, fallback: number) =>
+  Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fallback;
+
+// Create (originalSlug null) or update a project. Returns it as saved.
+export async function saveProject(
+  originalSlug: string | null,
+  input: Omit<Project, "slug"> & { slug?: string },
+): Promise<Project> {
+  await requireAuth();
+  const projects = await getProjects();
+  const idx = originalSlug === null ? -1 : projects.findIndex((p) => p.slug === originalSlug);
+  if (originalSlug !== null && idx === -1) throw new Error("project not found");
+
+  const title = (input.title ?? "").trim();
+  if (!title) throw new Error("title cannot be empty");
+  const repo = (input.repo ?? "").trim().replace(/^https?:\/\/github\.com\//, "").replace(/\/$/, "");
+  if (repo && !REPO_RE.test(repo)) throw new Error('GitHub repo should look like "owner/name"');
+  const href = (input.href ?? "").trim();
+  if (href && !/^https?:\/\//.test(href)) throw new Error("live link should start with https://");
+
+  const base = slugify(input.slug || title);
+  let slug = base;
+  for (let n = 1; projects.some((p, i) => i !== idx && p.slug === slug); n++) slug = `${base}-${n}`;
+
+  const project: Project = {
+    slug,
+    title,
+    logo: checkImage(input.logo, "logo"),
+    logoAlt: (input.logoAlt ?? "").trim(),
+    titleImage: checkImage(input.titleImage, "title image"),
+    size: clamp(Number(input.size), 2, 30, 8),
+    titleSize: clamp(Number(input.titleSize), 0.5, 4, 1.5),
+    ...(repo ? { repo } : {}),
+    ...(href ? { href } : {}),
+    body: String(input.body ?? ""),
+  };
+  if (idx === -1) projects.push(project);
+  else projects[idx] = project;
+  await saveProjects(projects);
+  revalidatePath("/", "layout");
+  return project;
+}
+
+export async function deleteProject(slug: string): Promise<void> {
+  await requireAuth();
+  const projects = await getProjects();
+  await saveProjects(projects.filter((p) => p.slug !== slug));
+  revalidatePath("/", "layout");
+}
+
+// Move a project one place earlier (-1) or later (+1) in the list.
+export async function moveProject(slug: string, by: -1 | 1): Promise<void> {
+  await requireAuth();
+  const projects = await getProjects();
+  const i = projects.findIndex((p) => p.slug === slug);
+  const j = i + by;
+  if (i === -1 || j < 0 || j >= projects.length) return;
+  [projects[i], projects[j]] = [projects[j], projects[i]];
+  await saveProjects(projects);
+  revalidatePath("/", "layout");
 }
 
 export async function logout(): Promise<void> {

@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { getPosts, getSections, type Post } from "@/lib/data";
+import { getPosts, getProjects, getSections, type Post } from "@/lib/data";
 import { SITE, bodyExcerpt } from "@/lib/seo";
 
 type Params = { section: string; post: string };
+
+// /<what i do>/<project>: a project's page (shown by Surface inside the "What I do" quadrant).
+async function findProject(section: string, slug: string) {
+  const { quadrants } = await getSections();
+  const work = quadrants[1];
+  if (!work || section !== work.slug) return null;
+  const project = (await getProjects()).find((p) => p.slug === slug);
+  return project ? { work, project } : "missing";
+}
 
 async function resolveBlogSection(section: string) {
   const { quadrants } = await getSections();
@@ -30,6 +39,18 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { section, post } = await params;
+  const proj = await findProject(section, post);
+  if (proj === "missing") return { title: SITE.title };
+  if (proj) {
+    const description = proj.project.body ? bodyExcerpt(proj.project.body) : `${proj.project.title}, by ${SITE.author}.`;
+    const canonical = `/${proj.work.slug}/${proj.project.slug}`;
+    return {
+      title: proj.project.title,
+      description,
+      alternates: { canonical },
+      openGraph: { type: "article", url: `${SITE.url}${canonical}`, title: `${proj.project.title} — ${SITE.title}`, description, siteName: SITE.title },
+    };
+  }
   const sec = await resolveBlogSection(section);
   if (sec.kind === "missing") return { title: SITE.title };
   const posts = await getPosts();
@@ -65,6 +86,9 @@ export default async function Page({
   params: Promise<Params>;
 }) {
   const { section, post } = await params;
+  const proj = await findProject(section, post);
+  if (proj === "missing") notFound();
+  if (proj) return null; // Surface shows the project; this route only supplies metadata
   const sec = await resolveBlogSection(section);
   if (sec.kind === "missing") notFound();
   const posts = await getPosts();

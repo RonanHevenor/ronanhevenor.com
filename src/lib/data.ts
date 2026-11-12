@@ -1,10 +1,15 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { DEFAULT_PROJECTS, type Project } from "./projects";
+
 const DATA_DIR = path.join(process.cwd(), "data");
 const PHOTOS_FILE = path.join(DATA_DIR, "photos.json");
 const POSTS_FILE = path.join(DATA_DIR, "posts.json");
 const SECTIONS_FILE = path.join(DATA_DIR, "sections.json");
+const PROJECTS_FILE = path.join(DATA_DIR, "projects.json");
+// Project images uploaded in the admin; served by /u/<file>. Like data/, not in git.
+export const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 
 export type Photo = { src: string; w: number; h: number };
 export type Post = {
@@ -77,3 +82,10 @@ export const getSections = async (): Promise<Sections> => {
 };
 export const saveSections = (sections: Sections) =>
   writeJSON(SECTIONS_FILE, sections);
+
+// Projects ("What I do"). Until the admin first saves them, the built-in defaults are used.
+export const getProjects = async (): Promise<Project[]> => {
+  const raw = await readJSON<Project[] | null>(PROJECTS_FILE, null);
+  return Array.isArray(raw) ? raw : DEFAULT_PROJECTS;
+};
+export const saveProjects = (projects: Project[]) => writeJSON(PROJECTS_FILE, projects);

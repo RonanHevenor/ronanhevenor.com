@@ -1,7 +1,6 @@
 import type { NextRequest } from "next/server";
-import { getPhotos, getPosts, getSections } from "@/lib/data";
+import { getPhotos, getPosts, getProjects, getSections } from "@/lib/data";
 import { renderMarkdown } from "@/lib/markdown";
-import { PROJECTS } from "@/lib/projects";
 import { SITE } from "@/lib/seo";
 import { esc, notFound, page } from "../html";
 
@@ -35,12 +34,13 @@ export async function GET(_req: NextRequest, ctx: RouteContext<"/html/[section]"
           .join("\n")}\n</ul>`
       : "<p>No photographs yet.</p>";
   } else if (index === 1) {
-    const projects = PROJECTS.map((p) => {
-      const name = p.href ? `<a href="${esc(p.href)}">${esc(p.title)}</a>` : esc(p.title);
-      const h = Math.round((240 * p.h) / p.w);
-      const repo = `<a href="https://github.com/${esc(p.repo)}">${esc(p.repo)}</a>`;
-      return `<li>\n<h2>${name}</h2>\n<p><img src="${esc(p.src)}" width="240" height="${h}" alt="${esc(p.alt)}"></p>\n<p>Code: ${repo}</p>\n</li>`;
-    }).join("\n");
+    // the projects, each linking to its own page
+    const projects = (await getProjects())
+      .map((p) => {
+        const h = Math.round((240 * p.logo.h) / p.logo.w);
+        return `<li>\n<h2><a href="/html/${esc(q.slug)}/${esc(p.slug)}">${esc(p.title)}</a></h2>\n<p><img src="${esc(p.logo.src)}" width="240" height="${h}" alt="${esc(p.logoAlt)}"></p>\n</li>`;
+      })
+      .join("\n");
     body = `${renderMarkdown(sections.whatido)}\n<ul>\n${projects}\n</ul>`;
   } else if (index === 2) {
     body = `<p><img src="/headshot.jpg" width="240" height="320" alt="Ronan Hevenor, smiling, in a green shirt with pine trees behind him"></p>\n${renderMarkdown(sections.whoiam)}`;

@@ -1,0 +1,36 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+
+// Serves an uploaded image from a folder under public/ on every request.
+//
+// `next start` only serves files that were in public/ when the server started, so anything
+// uploaded through /ronan afterwards would 404 until the next restart. Reading from disk here
+// makes new uploads show up at once. Used by /img (gallery photos) and /u (project images).
+
+const TYPES: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+};
+
+export async function serveFile(dir: string, file: string): Promise<Response> {
+  // Same character set the upload actions write; rules out "..", slashes, etc.
+  if (!/^[A-Za-z0-9._-]+$/.test(file) || file.startsWith(".")) {
+    return new Response("not found", { status: 404 });
+  }
+  const type = TYPES[path.extname(file).toLowerCase()];
+  if (!type) return new Response("not found", { status: 404 });
+  try {
+    const buf = await fs.readFile(path.join(dir, file));
+    return new Response(new Uint8Array(buf), {
+      headers: {
+        "Content-Type": type,
+        // A deleted file's name can be reused by a later upload, so cache for a day, not forever.
+        "Cache-Control": "public, max-age=86400",
+      },
+    });
+  } catch {
+    return new Response("not found", { status: 404 });
+  }
+}
