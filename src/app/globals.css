@@ -113,69 +113,31 @@ body {
 
 /* ---------- Intro (see _components/Intro.tsx) ----------
    Timeline, in seconds from first paint:
-     0-1.85   the video (public/intro/name.mp4, ManimGL): "Ronan Hevenor" written out from 0.25
-              to 1.25, then held (its last frame stays up after it ends)
-     2.4-3.0  the name fades out
-     3.1-5.4  "Click a quadrant to read that section" fades in, holds, fades out
-     5.5-6.3  the black fades away, revealing the site
-   The bottom link fades in over 0.25-1.05, as the name starts being written.
+     0-4.85   the video (public/intro/hint.mp4, ManimGL): "Click a quadrant to read that section"
+              written out from 0.25 to 4.25, then held (its last frame stays up after it ends)
+     5.0-5.6  the writing fades out
+     5.7-6.5  the black fades away, revealing the site
+   The bottom link fades in over 0.25-1.05, as the writing starts.
    Layout is also set inline on the elements (Intro.tsx), so it's right before this loads. */
 
 .intro {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #000;
-  color: #fff;
-  cursor: pointer;
-  animation: intro-out 0.8s ease-in-out 5.5s forwards;
+  animation: intro-out 0.8s ease-in-out 5.7s forwards;
 }
 .no-intro .intro {
   display: none !important; /* over the inline layout */
 }
-/* skipped (click or key): everything goes quickly */
-.intro.intro-skip {
-  /* its own keyframes, so it starts fresh (rather than retiming the running fade) and ends */
-  animation: intro-skip 0.3s ease-out forwards;
-}
-
-/* the video is 16:9 on black, contained; the name spans 78% of its width */
 .intro-video {
-  animation: intro-out 0.6s ease-in-out 2.4s forwards;
+  animation: intro-out 0.6s ease-in-out 5s forwards;
 }
 
-.intro-hint {
-  position: absolute;
-  margin: 0 1.5rem;
-  text-align: center;
-  font-size: clamp(1rem, 2.2vw, 1.5rem);
-  letter-spacing: 0.01em;
-  opacity: 0;
-  animation: intro-hint 2.3s ease-in-out 3.1s forwards;
-}
-
-/* the bottom link fades in with the name (only while the intro plays) */
+/* the bottom link fades in with the writing (only while the intro plays) */
 html:not(.no-intro) .intro-link {
   animation: intro-in 0.8s ease-out 0.25s both;
 }
 
-@keyframes intro-hint {
-  0% { opacity: 0; }
-  26% { opacity: 1; }
-  74% { opacity: 1; }
-  100% { opacity: 0; }
-}
 @keyframes intro-in {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-@keyframes intro-skip {
-  from { opacity: 1; }
-  to { opacity: 0; visibility: hidden; }
 }
 @keyframes intro-out {
   to { opacity: 0; visibility: hidden; }
