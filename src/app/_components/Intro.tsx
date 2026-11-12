@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { memo, useEffect, useState, useSyncExternalStore } from "react";
 
 // The intro, on every load: a black screen; "Click a quadrant to read that section." written
 // out, faded, then "Click again to go back." written out (a video rendered with ManimGL,
@@ -39,6 +39,16 @@ const LAYOUT = {
 // downloading, so each device fetches only its own.
 const PHONE = "(orientation: portrait) and (max-width: 820px)";
 const VIDEO = `<video autoplay muted playsinline preload="auto" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000"><source src="/intro/hint-vertical.mp4" media="${PHONE}" type="video/mp4"><source src="/intro/hint.mp4" type="video/mp4"></video>`;
+
+// The video's layer, rendered once and never touched again. React 19 compares a
+// dangerouslySetInnerHTML object by identity, so a fresh `{ __html }` on each render rewrites the
+// HTML, which throws the playing video away and autoplays a new one from the start (the
+// finished words cut to black, then the opening redrawn). So: one constant object, fixed props,
+// memo; showing the still instead is a class on the parent (globals.css).
+const VIDEO_HTML = { __html: VIDEO };
+const VideoLayer = memo(function VideoLayer() {
+  return <div className="intro-video intro-video-live" style={LAYOUT.fill} dangerouslySetInnerHTML={VIDEO_HTML} />;
+});
 
 const VIDEO_MS = 6300; // the videos' length; how long the still stays up instead
 const ENDING_MS = 2150; // the ending's fades (globals.css), then the overlay is removed
@@ -118,17 +128,13 @@ export default function Intro() {
   return (
     <div
       aria-hidden="true"
-      className={`intro${ending ? " intro-ending" : ""}`}
+      className={`intro${ending ? " intro-ending" : ""}${still ? " intro-still" : ""}`}
       style={LAYOUT.overlay}
       onAnimationEnd={(e) => {
         if (ending && e.target === e.currentTarget) setGone(true);
       }}
     >
-      <div
-        className="intro-video"
-        style={{ ...LAYOUT.fill, ...(still ? { visibility: "hidden" } : null) }}
-        dangerouslySetInnerHTML={{ __html: VIDEO }}
-      />
+      <VideoLayer />
       {still && (
         <picture className="intro-video" style={LAYOUT.fill}>
           <source media={PHONE} srcSet="/intro/hint-vertical.png" />

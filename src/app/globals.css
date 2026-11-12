@@ -136,6 +136,10 @@ body {
 .intro-ending .intro-video {
   animation: intro-words-out 0.8s ease-in-out 0.15s forwards;
 }
+/* the video wouldn't play: the still is shown in its place */
+.intro-still .intro-video-live {
+  visibility: hidden;
+}
 
 /* the bottom link fades in with the writing (only while the intro plays) */
 html:not(.no-intro) .intro-link {
