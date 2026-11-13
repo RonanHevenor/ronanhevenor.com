@@ -710,8 +710,10 @@ export default function Surface({
               style={
                 i === 0
                   ? {
+                      // black over a bright photo, white over a dark one; on desktop the photo
+                      // is only in full colour while hovered (otherwise grey and dimmed)
                       color:
-                        hovered === 0 && photoBrightness > 0.55
+                        (hovered === 0 || stacked) && photoBrightness > 0.55
                           ? "#000"
                           : "#fff",
                       transition: `color ${TITLE_COLOR_MS}ms ease-in-out`,
