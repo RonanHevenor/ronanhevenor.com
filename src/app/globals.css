@@ -131,6 +131,21 @@ body {
   border-radius: 0.75rem;
   transform: translateX(calc(-50% - var(--shift, 0px)));
 }
+/* a line of space above and below every picture, inside a list too (where paragraphs get no
+   gap of their own); next to a \space line, that line's gap is the whole gap */
+.project-body img {
+  margin-top: 1.65em;
+  margin-top: 1lh;
+  margin-bottom: 1.65em;
+  margin-bottom: 1lh;
+}
+.project-body .md-space + p > img:first-child,
+.project-body .md-space + * p:first-child > img:first-child {
+  margin-top: 0;
+}
+.project-body p:has(+ .md-space) > img:last-child {
+  margin-bottom: 0;
+}
 /* ![alt](src){210}: a share of the text column's width */
 .project-body img.sized {
   width: calc(var(--size) * var(--col-w, 100%));
