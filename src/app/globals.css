@@ -270,3 +270,61 @@ html:not(.no-intro) .intro-link {
     --viz-on-strong: #0b0b0b;
   }
 }
+
+.project-stack {
+  display: none;
+  flex-direction: column;
+  gap: 3rem;
+  padding: 1rem 1.5rem 3rem;
+  container-type: inline-size;
+}
+.project-stack a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Phones, homepage: the four sections stacked down the page (photos, who I am, what I do, my
+   thoughts) instead of the 2x2 grid. Surface positions the sections with inline styles for the
+   grid; these take over. */
+@media (max-width: 639px) {
+  .surface.is-home {
+    display: flex;
+    flex-direction: column;
+  }
+  .surface.is-home > section {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    flex: none;
+    transition: none !important;
+  }
+  /* the photo at its own shape (never taller than most of the screen); when it changes, the
+     page below eases to the new height along with the crossfade */
+  .surface.is-home > section[data-q="0"] {
+    order: 1;
+    height: min(calc(100vw / var(--photo-aspect, 1.5)), 85svh) !important;
+    transition: height 700ms ease-in-out !important;
+  }
+  .surface.is-home > section[data-q="2"] {
+    order: 2;
+  }
+  .surface.is-home > section[data-q="1"] {
+    order: 3;
+  }
+  /* the projects big and one under another, instead of scattered */
+  .surface.is-home .project-scatter {
+    display: none;
+  }
+  .surface.is-home .project-stack {
+    display: flex;
+  }
+  /* clear of the fixed link at the bottom of the screen */
+  .surface.is-home > section[data-q="3"] {
+    order: 4;
+    padding-bottom: 5rem;
+  }
+}

@@ -299,7 +299,7 @@ export default function ProjectScatter({
     <div
       ref={rootRef}
       aria-hidden={hidden}
-      className="pointer-events-none absolute inset-0 z-10"
+      className="project-scatter pointer-events-none absolute inset-0 z-10"
       // hidden (not faded) until the first measurement, so nothing has to animate in from 0
       style={{ ...fadeStyle, ...(result ? null : { visibility: "hidden" }) }}
     >

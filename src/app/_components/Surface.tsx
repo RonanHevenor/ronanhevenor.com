@@ -3,11 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Photo } from "@/lib/data";
 import ProjectBody from "./ProjectBody";
 import ProjectScatter, { type ScatterPhase } from "./ProjectScatter";
-import type { Project } from "@/lib/projects";
+import { CORNER_RADIUS, type Project } from "@/lib/projects";
 
 type SurfacePost = { slug: string; title: string; date: string; html: string };
 // A project with its write-up already rendered (and sanitized) server-side.
@@ -37,10 +37,12 @@ function Slideshow({
   photos,
   onActivePhotoChange,
   dim,
+  paused,
 }: {
   photos: Photo[];
   onActivePhotoChange?: (photo: Photo) => void;
   dim: boolean;
+  paused: boolean; // holds the current photo (on phones, while the photo isn't in view)
 }) {
   const [a, setA] = useState(0);
   const [b, setB] = useState(1 % Math.max(photos.length, 1));
@@ -48,7 +50,7 @@ function Slideshow({
   const tickRef = useRef(0);
 
   useEffect(() => {
-    if (photos.length < 2) return;
+    if (photos.length < 2 || paused) return;
     const id = setInterval(() => {
       tickRef.current += 1;
       if (tickRef.current % 2 === 1) {
@@ -64,7 +66,7 @@ function Slideshow({
       }
     }, SLIDE_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [photos.length]);
+  }, [photos.length, paused]);
 
   const activePhoto = photos[aActive ? a : b];
   const lastReportedRef = useRef<Photo | null>(null);
@@ -281,6 +283,44 @@ function renderPost(post: SurfacePost) {
   );
 }
 
+// "What I do" on the phone homepage: the projects big, one under another, each linking to its
+// page. Always in the page; the CSS shows it there instead of the scattered thumbnails.
+function ProjectStack({ projects, basePath }: { projects: SurfaceProject[]; basePath: string }) {
+  const biggest = Math.max(...projects.map((p) => p.size));
+  return (
+    <ul className="project-stack">
+      {projects.map((p) => {
+        // the admin sizes set the proportions, but none drops below 55% of the width
+        const pct = Math.max(55, (p.size / biggest) * 100);
+        return (
+          <li key={p.slug}>
+            <Link href={`${basePath}/${p.slug}`} aria-label={p.title}>
+              <Image
+                src={p.logo.src}
+                alt={p.logoAlt}
+                width={p.logo.w}
+                height={p.logo.h}
+                sizes="100vw"
+                className="h-auto"
+                style={{ width: `${pct}%`, borderRadius: `${CORNER_RADIUS * pct}cqw` }}
+              />
+              <Image
+                src={p.titleImage.src}
+                alt=""
+                width={p.titleImage.w}
+                height={p.titleImage.h}
+                unoptimized
+                className="w-auto max-w-full"
+                style={{ height: `calc(${p.titleSize} * 1.25rem)` }}
+              />
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 type Box = { top: string; left: string; width: string; height: string };
 
 // Which layout the "What I do" project thumbnails take (quadrant 1).
@@ -392,6 +432,17 @@ function sampleBrightness(url: string): Promise<number> {
   });
 }
 
+// Phones (narrower than Tailwind's sm): the homepage stacks the four sections down the page
+// instead of the 2x2 grid (CSS does the stacking, see .surface.is-home in globals.css, so it's
+// right before this script runs; this flag is for what the script itself does differently).
+const PHONE = "(max-width: 639px)";
+const subscribePhone = (cb: () => void) => {
+  const mq = window.matchMedia(PHONE);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+};
+const isPhone = () => window.matchMedia(PHONE).matches;
+
 export default function Surface({
   photos,
   posts,
@@ -416,6 +467,11 @@ export default function Surface({
   const currentProject = projectSlug
     ? projects.find((p) => p.slug === projectSlug) ?? null
     : null;
+  const phone = useSyncExternalStore(subscribePhone, isPhone, () => false);
+  const stacked = phone && expanded === null;
+  const photoRef = useRef<HTMLElement>(null);
+  const homeScrollRef = useRef(0);
+  const [photoInView, setPhotoInView] = useState(true);
   const [hovered, setHovered] = useState<number | null>(null);
   const [suppressHover, setSuppressHover] = useState(false);
   const [blogPhase, setBlogPhase] = useState<BlogPhase>("idle");
@@ -517,6 +573,30 @@ export default function Surface({
     return () => window.removeEventListener("keydown", onKey);
   }, [expanded, router, projectSlug, projectsPath]);
 
+  // In the phone stack the photo only changes while it's on screen, so a new photo's shape never
+  // moves the page about while you're reading something else.
+  useEffect(() => {
+    const el = photoRef.current;
+    if (!stacked || !el) return;
+    const io = new IntersectionObserver(([e]) => setPhotoInView(e.intersectionRatio >= 0.9), {
+      threshold: [0, 0.9, 1],
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [stacked]);
+
+  // The stack scrolls the page; opening a post or a project shows it from its top, and coming
+  // back home returns to where you were.
+  useEffect(() => {
+    if (expanded !== null) return;
+    const onScroll = () => { homeScrollRef.current = window.scrollY; };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [expanded]);
+  useLayoutEffect(() => {
+    window.scrollTo(0, expanded === null ? homeScrollRef.current : 0);
+  }, [expanded]);
+
   if (pathname.startsWith("/ronan")) return null;
 
   const postSlug = pathname.startsWith(`/${blogSlug}/`)
@@ -529,6 +609,7 @@ export default function Surface({
   const handleClick = (i: number, e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("a")) return;
     if (i === 0) return;
+    if (phone && expanded === null) return;
     // a click on empty space closes the open quadrant (from a project's page too): back to the four
     if (expanded !== null) {
       router.push("/");
@@ -538,7 +619,7 @@ export default function Surface({
   };
   const handleEnter = (i: number) => {
     cursorSectionRef.current = i;
-    if (expanded !== null) return;
+    if (expanded !== null || phone) return;
     if (suppressHover) return;
     setHovered(i);
   };
@@ -555,7 +636,7 @@ export default function Surface({
   const transition = `top ${layoutTiming}, left ${layoutTiming}, width ${layoutTiming}, height ${layoutTiming}`;
 
   return (
-    <main className="relative flex-1 overflow-hidden">
+    <main className={`surface relative flex-1 overflow-hidden${expanded === null ? " is-home" : ""}`}>
       {quadrants.map((q, i) => {
         const row = Math.floor(i / 2);
         const col = i % 2;
@@ -578,11 +659,14 @@ export default function Surface({
         return (
           <section
             key={q.path}
+            ref={i === 0 ? photoRef : undefined}
+            data-q={i}
             onMouseEnter={() => handleEnter(i)}
             onMouseLeave={() => handleLeave(i)}
             onClick={(e) => handleClick(i, e)}
             style={{
               ...box,
+              ...(i === 0 ? { "--photo-aspect": activePhoto.w / activePhoto.h } : null),
               zIndex: isExpanded ? 30 : 0,
               transition,
               overflowX: "hidden",
@@ -595,6 +679,7 @@ export default function Surface({
                 photos={photos}
                 onActivePhotoChange={setActivePhoto}
                 dim={hovered !== 0 && expanded !== 0}
+                paused={stacked && !photoInView}
               />
             )}
             {i === 1 && (
@@ -659,6 +744,7 @@ export default function Surface({
                     ? renderProject(currentProject)
                     : <p className="stable-col is-centered px-6 text-xl text-neutral-500">No such project.</p>
                   : q.body}
+              {i === 1 && !projectSlug && <ProjectStack projects={projects} basePath={projectsPath} />}
             </div>
           </section>
         );
