@@ -328,3 +328,10 @@ html:not(.no-intro) .intro-link {
     padding-bottom: 5rem;
   }
 }
+
+/* the intro never shows on phones (the same screens as NO_INTRO_SCREENS in Intro.tsx) */
+@media (max-width: 639px), (pointer: coarse) and (max-height: 500px) {
+  .intro {
+    display: none !important;
+  }
+}

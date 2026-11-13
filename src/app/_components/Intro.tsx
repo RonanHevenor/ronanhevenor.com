@@ -23,10 +23,13 @@ import { track } from "./Tracker";
 // hides it entirely for anyone who has asked their system to reduce motion or who has just come
 // from the plain version.
 
-// Skipped for reduced motion, and when arriving from the plain version (/html): seen from the
+// Never on phones (narrow, or a touch screen that's short because it's held sideways).
+export const NO_INTRO_SCREENS = "(max-width: 639px), (pointer: coarse) and (max-height: 500px)";
+
+// Skipped on phones, for reduced motion, and when arriving from the plain version (/html): seen from the
 // previous page's address, or from ?from=html on the plain version's links back (in case the
 // address isn't passed along), which is then taken out of the address bar.
-export const INTRO_GATE = `try{var q=new URLSearchParams(location.search),h=q.get("from")==="html",r=document.referrer;if(h){q.delete("from");var t=q.toString();history.replaceState(history.state,"",location.pathname+(t?"?"+t:"")+location.hash)}if(!h&&r){var u=new URL(r);h=u.origin===location.origin&&(u.pathname==="/html"||u.pathname.indexOf("/html/")===0)}if(h||matchMedia("(prefers-reduced-motion: reduce)").matches){document.documentElement.classList.add("no-intro");var s=document.createElement("style");s.textContent=".intro{display:none!important}";document.head.appendChild(s)}}catch(e){}`;
+export const INTRO_GATE = `try{var q=new URLSearchParams(location.search),h=q.get("from")==="html",r=document.referrer;if(h){q.delete("from");var t=q.toString();history.replaceState(history.state,"",location.pathname+(t?"?"+t:"")+location.hash)}if(!h&&r){var u=new URL(r);h=u.origin===location.origin&&(u.pathname==="/html"||u.pathname.indexOf("/html/")===0)}if(h||matchMedia("(prefers-reduced-motion: reduce)").matches||matchMedia("${NO_INTRO_SCREENS}").matches){document.documentElement.classList.add("no-intro");var s=document.createElement("style");s.textContent=".intro{display:none!important}";document.head.appendChild(s)}}catch(e){}`;
 
 const LAYOUT = {
   overlay: {
