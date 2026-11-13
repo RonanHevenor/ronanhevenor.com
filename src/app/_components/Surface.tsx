@@ -87,7 +87,11 @@ function Slideshow({
   }
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+    <div
+      // at rest: grey and a little faded; in colour while hovered (phones: always in colour)
+      className="photo-layer pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      style={{ filter: dim ? "grayscale(1)" : "grayscale(0)", transition: `filter ${HOVER_MS}ms ease` }}
+    >
       <div
         className="absolute inset-0"
         style={{ opacity: aActive ? 1 : 0, transition: fade }}
