@@ -32,10 +32,6 @@ const TEXT_CHAR_STEP_MS = 25;
 const BLOG_EXIT_MS = 220;
 const BLOG_ITEM_MS = 520;
 const BLOG_ITEM_STAGGER_MS = 90;
-// a section's text while it opens or closes: away this long (the quadrant moves meanwhile), then
-// this long to cascade back in
-const SETTLE_GAP_MS = 900;
-const SETTLE_IN_MS = 900;
 
 function Slideshow({
   photos,
@@ -159,8 +155,11 @@ function buildQuadrants(
   sections: SurfaceSections,
   expanded: number | null,
   blogPhase: BlogPhase,
-  centred: (i: number) => boolean,
+  projectOpen: boolean,
 ): Quadrant[] {
+  // "What I do" and "Who I am" opened: their column eases to the centre of the screen and to
+  // its open width as the quadrant grows, rewrapping on the way (.quad-col in globals.css)
+  const open = (i: number) => (expanded === i && !(i === 1 && projectOpen) ? " is-open" : "");
   const q = sections.quadrants;
   const blogSlug = q[3].slug;
   const blogCenter = expanded === 3 ? " is-centered" : "";
@@ -190,16 +189,13 @@ function buildQuadrants(
         // it's a little cut off at rest, fully shown on hover, and doesn't rewrap mid-animation;
         // never narrower than the quadrant itself, so phones (no hover) get full-width lines
         data-scatter-text // ProjectScatter keeps the thumbnails below this
-        className={`markdown stable-col${centred(1) ? " is-centered" : ""} px-6 pb-6 text-xl leading-relaxed`}
-        style={{ width: `min(max(calc(${BIG.replace("%", "vw")} - 3rem), 100%), 42rem)`, transition: "none" }}
+        className={`markdown quad-col${open(1)} px-6 pb-6 text-xl leading-relaxed`}
+        style={{ width: `min(max(calc(${BIG.replace("%", "vw")} - 3rem), 100%), 42rem)` }}
         dangerouslySetInnerHTML={{ __html: sections.whatido }}
       />
     ),
     (
-      <div
-        className={`stable-col${centred(2) ? " is-centered" : ""} flex flex-col gap-6 px-6 pb-6 sm:flex-row sm:items-start`}
-        style={{ transition: "none" }}
-      >
+      <div className={`stable-col quad-col${open(2)} flex flex-col gap-6 px-6 pb-6 sm:flex-row sm:items-start`}>
         <Image
           src="/headshot.jpg"
           alt="Ronan Hevenor"
@@ -487,26 +483,6 @@ export default function Surface({
   const [hovered, setHovered] = useState<number | null>(null);
   const [suppressHover, setSuppressHover] = useState(false);
   const [blogPhase, setBlogPhase] = useState<BlogPhase>("idle");
-  // Opening or closing "What I do" or "Who I am": its text fades out as the quadrant starts to
-  // move, stays away a moment, then cascades back in at its new place (a centred column when
-  // open, the quadrant's own margins when closed), so it never slides or jumps in view.
-  const [settle, setSettle] = useState<{ i: number; at: "out" | "in" } | null>(null);
-  const [seenExpanded, setSeenExpanded] = useState(expanded);
-  if (seenExpanded !== expanded) {
-    setSeenExpanded(expanded);
-    const moving = expanded ?? seenExpanded;
-    if (moving === 1 || moving === 2) setSettle({ i: moving, at: "out" });
-  }
-  useEffect(() => {
-    if (!settle) return;
-    const t = setTimeout(
-      () => setSettle(settle.at === "out" ? { i: settle.i, at: "in" } : null),
-      settle.at === "out" ? SETTLE_GAP_MS : SETTLE_IN_MS,
-    );
-    return () => clearTimeout(t);
-  }, [settle]);
-  const settlingOut = (i: number) => settle?.i === i && settle.at === "out";
-  const centred = (i: number) => expanded === i && !settlingOut(i);
   const prevExpandedRef = useRef<number | null>(expanded);
   const prevBlogExpandedRef = useRef<boolean>(expanded === 3);
   const cursorSectionRef = useRef<number | null>(null);
@@ -543,7 +519,7 @@ export default function Surface({
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  const quadrants = buildQuadrants(posts, sections, expanded, blogPhase, centred);
+  const quadrants = buildQuadrants(posts, sections, expanded, blogPhase, !!projectSlug);
 
   useEffect(() => {
     for (const q of quadrants) router.prefetch(q.path);
@@ -676,7 +652,6 @@ export default function Surface({
         const col = i % 2;
         const isExpanded = expanded === i;
         const beingPushed = expanded !== null && !isExpanded;
-        const textOut = beingPushed || settlingOut(i);
 
         let box: Box;
         if (expanded !== null) {
@@ -736,8 +711,8 @@ export default function Surface({
               className={`relative z-10 px-6 pt-6 pb-4 text-xl font-medium tracking-tight whitespace-nowrap${
                 i === 3
                   ? ` stable-col${expanded === 3 ? " is-centered" : ""}`
-                  : i === 1 || i === 2
-                    ? ` stable-col${centred(i) ? " is-centered" : ""}`
+                  : (i === 1 && !projectSlug) || i === 2
+                    ? ` quad-col${expanded === i ? " is-open" : ""}`
                     : ""
               }`}
               style={
@@ -751,9 +726,7 @@ export default function Surface({
                           : "#fff",
                       transition: `color ${TITLE_COLOR_MS}ms ease-in-out`,
                     }
-                  : i === 1 || i === 2
-                    ? { transition: "none" } // moves to its centred place while it's faded out
-                    : undefined
+                  : undefined
               }
             >
               {q.title.split("").map((char, ci) => (
@@ -761,8 +734,8 @@ export default function Surface({
                   key={ci}
                   className="inline-block"
                   style={{
-                    opacity: textOut ? 0 : 1,
-                    transform: textOut ? "translateY(-4px)" : "translateY(0)",
+                    opacity: beingPushed ? 0 : 1,
+                    transform: beingPushed ? "translateY(-4px)" : "translateY(0)",
                     transition: `opacity ${TEXT_FADE_MS}ms ease, transform ${TEXT_FADE_MS}ms ease`,
                     transitionDelay: `${ci * TEXT_CHAR_STEP_MS}ms`,
                   }}
@@ -774,8 +747,8 @@ export default function Surface({
             <div
               className="relative z-10"
               style={{
-                opacity: textOut ? 0 : 1,
-                transform: textOut ? "translateY(-8px)" : "translateY(0)",
+                opacity: beingPushed ? 0 : 1,
+                transform: beingPushed ? "translateY(-8px)" : "translateY(0)",
                 transition: `opacity ${TEXT_FADE_MS}ms ease, transform ${TEXT_FADE_MS}ms ease`,
                 transitionDelay: `${q.title.length * TEXT_CHAR_STEP_MS}ms`,
               }}
