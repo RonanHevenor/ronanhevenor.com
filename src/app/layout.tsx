@@ -34,7 +34,6 @@ export const metadata: Metadata = {
     default: SITE.title,
     template: `%s — ${SITE.title}`,
   },
-  description: SITE.description,
   applicationName: SITE.title,
   authors: [{ name: SITE.author, url: SITE.url }],
   creator: SITE.author,
@@ -48,12 +47,10 @@ export const metadata: Metadata = {
     url: SITE.url,
     siteName: SITE.title,
     title: SITE.title,
-    description: SITE.description,
   },
   twitter: {
     card: "summary_large_image",
     title: SITE.title,
-    description: SITE.description,
     creator: SITE.author,
   },
   robots: {
@@ -115,14 +112,12 @@ export default async function RootLayout({
     "@type": "Person",
     name: SITE.author,
     url: SITE.url,
-    description: SITE.description,
   };
   const websiteLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: SITE.title,
     url: SITE.url,
-    description: SITE.description,
     author: { "@type": "Person", name: SITE.author },
   };
 

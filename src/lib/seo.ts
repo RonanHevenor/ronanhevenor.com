@@ -1,7 +1,5 @@
 export const SITE = {
   title: "Ronan Hevenor",
-  description:
-    "The writing, photography, and work of Ronan Hevenor — builder, writer, visual artist.",
   url: "https://ronanhevenor.com",
   author: "Ronan Hevenor",
   locale: "en_US",

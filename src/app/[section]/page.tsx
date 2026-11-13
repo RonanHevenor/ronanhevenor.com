@@ -27,13 +27,12 @@ async function resolveSection(section: string) {
 function descriptionFor(
   idx: number,
   sections: Awaited<ReturnType<typeof getSections>>,
-  quadrantTitle: string,
-): string {
+): string | undefined {
   if (idx === 1 && sections.whatido)
     return bodyExcerpt(sections.whatido);
   if (idx === 2 && sections.whoiam)
     return bodyExcerpt(sections.whoiam);
-  return `${quadrantTitle} — ${SITE.description}`;
+  return undefined;
 }
 
 export async function generateMetadata({
@@ -47,7 +46,7 @@ export async function generateMetadata({
   const idx = res.sections.quadrants.findIndex(
     (q) => q.slug === res.quadrant.slug,
   );
-  const description = descriptionFor(idx, res.sections, res.quadrant.title);
+  const description = descriptionFor(idx, res.sections);
   const canonical = `/${res.quadrant.slug}`;
   return {
     title: res.quadrant.title,

@@ -25,17 +25,6 @@ export default async function Image() {
         <div style={{ fontSize: 96, fontWeight: 500, letterSpacing: "-0.02em" }}>
           {SITE.title}
         </div>
-        <div
-          style={{
-            fontSize: 36,
-            marginTop: 28,
-            color: "#a3a3a3",
-            maxWidth: 900,
-            lineHeight: 1.3,
-          }}
-        >
-          {SITE.description}
-        </div>
       </div>
     ),
     { ...size },
