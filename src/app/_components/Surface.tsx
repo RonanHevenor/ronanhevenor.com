@@ -609,7 +609,9 @@ export default function Surface({
   const handleClick = (i: number, e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest("a")) return;
     if (i === 0) return;
-    if (phone && expanded === null) return;
+    // phones: tapping a section never opens or closes anything; posts and projects open from
+    // their links, and the browser's back button goes back
+    if (phone) return;
     // a click on empty space closes the open quadrant (from a project's page too): back to the four
     if (expanded !== null) {
       router.push("/");
