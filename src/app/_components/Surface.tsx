@@ -116,7 +116,7 @@ function Slideshow({
         </div>
       )}
       <div
-        className="absolute inset-0 bg-black"
+        className="photo-dim absolute inset-0 bg-black"
         style={{
           opacity: dim ? 0.3 : 0,
           transition: `opacity ${HOVER_MS}ms ease`,

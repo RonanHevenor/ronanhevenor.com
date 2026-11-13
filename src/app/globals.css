@@ -312,6 +312,10 @@ html:not(.no-intro) .intro-link {
   .surface.is-home > section[data-q="2"] {
     order: 2;
   }
+  /* the photos at full colour: no dimming (it's lifted on hover elsewhere, and phones can't hover) */
+  .surface.is-home .photo-dim {
+    opacity: 0 !important;
+  }
   .surface.is-home > section[data-q="1"] {
     order: 3;
   }
