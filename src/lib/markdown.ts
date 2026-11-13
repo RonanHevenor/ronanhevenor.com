@@ -47,7 +47,7 @@ const md = new Marked(markedSmartypants(), {
       renderer(token) {
         const { href, text, title, size } = token as unknown as { href: string; text: string; title: string | null; size: number };
         const pct = Math.max(10, Math.min(400, size));
-        return imageHtml(href, text, title, ` class="sized" style="--size:${pct}%"`);
+        return imageHtml(href, text, title, ` class="sized" style="--size:${pct / 100}"`);
       },
     },
   ],
