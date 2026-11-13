@@ -245,7 +245,7 @@ function renderProject(project: SurfaceProject) {
   return (
     // on wide screens the column sits clear of the quadrant's title, so the title image moves
     // up level with it, near the top of the screen
-    <article className="stable-col is-centered space-y-6 px-6 pb-16 text-xl leading-relaxed xl:-mt-12">
+    <article className="project-article stable-col is-centered space-y-6 px-6 pb-16 text-xl leading-relaxed xl:-mt-12">
       <h2 className="flex justify-center">
         <Image
           src={project.titleImage.src}

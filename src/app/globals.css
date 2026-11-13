@@ -135,13 +135,26 @@ body {
   width: var(--size);
   max-width: calc(100vw - 3rem);
 }
-/* phones: every picture runs from one edge of the screen to the other */
+/* phones: every picture runs from one edge of the screen to the other. The article spans the
+   screen with the text inset by padding, so a picture reaches the edges by undoing exactly that
+   padding, whatever the column's centring or its resize animation is doing. */
 @media (max-width: 639px) {
+  .project-article.stable-col {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 3rem;
+    padding-right: 3rem;
+    transition: none;
+  }
   .project-body img,
   .project-body img.sized {
-    width: 100vw;
+    position: static;
+    width: calc(100% + 6rem);
     max-width: none;
+    margin-left: -3rem;
     border-radius: 0;
+    transform: none;
   }
 }
 .markdown hr {
